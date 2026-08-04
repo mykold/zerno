@@ -1,0 +1,25 @@
+{
+  "name": "zerno-repl",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "tsc --watch",
+    "start": "tsx src/index.ts",
+    "scripts:get-sync-server-selection": "tsx scripts/get-sync-server-selection.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@automerge/automerge-repo": "2.6.0-subduction.40",
+    "@automerge/automerge-repo-keyhive": "0.4.0-alpha.sub.2",
+    "@automerge/automerge-repo-storage-nodefs": "2.6.0-subduction.40",
+    "@automerge/automerge-subduction": "0.16.0",
+    "@keyhive/keyhive": "0.1.0-alpha.6",
+    "zerno-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "tsx": "^4.23.5",
+    "typescript": "^5.9.2"
+  }
+}
