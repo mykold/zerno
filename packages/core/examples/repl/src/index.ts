@@ -13,6 +13,7 @@ import {
   ContactCard,
   initializeAutomergeRepoKeyhive,
 } from "@automerge/automerge-repo-keyhive";
+import type { SyncServerSelection } from "@automerge/automerge-repo-keyhive";
 
 import { KeyhiveAccess, Zerno } from "zerno-core";
 import { colorize, colors } from "./colorize.js";
@@ -21,6 +22,10 @@ const ZERNO_DIR = process.env.ZERNO_DIR ?? ".zerno";
 const ZERNO_STORAGE = `${ZERNO_DIR}/storage`;
 const ZERNO_DOCUMENT_URL = `${ZERNO_DIR}/document-url`;
 const ZERNO_PEER_ID = `${ZERNO_DIR}/peer-id`;
+// NOTE: This file contains the Subduction server identity and connection endpoints.
+// Generate `syncServer` using `pnpm scripts:get-sync-server-selection` with the
+// Subduction server's private key when using a custom server.
+const SYNC_SERVER_FILE = "./sync-server.json";
 
 const storage = new NodeFSStorageAdapter(ZERNO_STORAGE);
 
@@ -50,22 +55,27 @@ async function getDocument(zd: ZernoDocument) {
   return await zerno.documents.find<ZernoDocument>(url as AutomergeUrl);
 }
 
+async function getSyncServer(): Promise<{
+  subductionWebsocketEndpoints: string[];
+  syncServer: SyncServerSelection;
+}> {
+  const content = await readFile(SYNC_SERVER_FILE, {
+    encoding: "utf-8",
+  });
+  return JSON.parse(content);
+}
+const { syncServer, subductionWebsocketEndpoints } = await getSyncServer();
+
 const { hive, repo } = await initializeAutomergeRepoKeyhive({
   createRepo: (config) => new Repo(config),
   storage,
   peerIdSuffix: ZERNO_PEER,
   automaticArchiveIngestion: true,
   cachingMode: "periodic",
-  // NOTE: `syncServer` is generated using `pnpm scripts:get-sync-server-selection`
-  //       by providing the private key file of the Subduction server.
-  syncServer: {
-    peerId: "nbBpOd+ZNw4HpNXh0qSPToA9QOyqlrTHlCQ3xghjl9s=" as PeerId,
-    contactCardJson:
-      '{"Rotate":{"payload":{"old":[164,141,139,96,3,171,244,103,27,111,227,70,11,197,163,130,230,110,151,210,88,85,207,151,83,144,160,157,12,241,93,91],"new":[55,127,37,222,203,102,93,149,229,122,146,44,122,115,85,46,111,66,83,236,135,36,181,220,27,164,92,242,121,233,142,125]},"issuer":[157,176,105,57,223,153,55,14,7,164,213,225,210,164,143,78,128,61,64,236,170,150,180,199,148,36,55,198,8,99,151,219],"signature":[19,14,65,99,240,65,107,161,118,109,246,230,83,1,7,192,237,5,157,217,8,105,189,100,192,181,96,13,255,44,239,199,81,197,17,173,22,215,15,131,95,64,182,79,232,48,243,86,250,226,150,87,16,104,3,160,75,85,78,60,58,53,106,12]}}',
-  },
+  syncServer,
   repo: {
     storage,
-    subductionWebsocketEndpoints: ["ws://194.61.52.50:8944"],
+    subductionWebsocketEndpoints,
   },
 });
 
