@@ -12,10 +12,16 @@ import { NodeFSStorageAdapter } from "@automerge/automerge-repo-storage-nodefs";
 import {
   ContactCard,
   initializeAutomergeRepoKeyhive,
+  uint8ArrayToHex,
 } from "@automerge/automerge-repo-keyhive";
 import type { SyncServerSelection } from "@automerge/automerge-repo-keyhive";
 
-import { KeyhiveAccess, Zerno } from "zerno-core";
+import {
+  encodeContactCard,
+  decodeContactCard,
+  Access,
+  Zerno,
+} from "zerno-core";
 import { colorize, colors } from "./colorize.js";
 
 const ZERNO_DIR = process.env.ZERNO_DIR ?? ".zerno";
@@ -32,11 +38,11 @@ const storage = new NodeFSStorageAdapter(ZERNO_STORAGE);
 async function getPeerId(): Promise<PeerId> {
   let peerId: string;
   try {
-    peerId = await readFile(ZERNO_PEER_ID, { encoding: "utf-8" });
+    peerId = await readFile(ZERNO_PEER_ID, "utf-8");
   } catch (err) {
     peerId = crypto.randomUUID();
     await mkdir(ZERNO_DIR, { recursive: true });
-    await writeFile(ZERNO_PEER_ID, peerId, { encoding: "utf-8" });
+    await writeFile(ZERNO_PEER_ID, peerId, "utf-8");
   }
   return peerId as PeerId;
 }
@@ -45,26 +51,23 @@ const ZERNO_PEER = await getPeerId();
 async function getDocument(zd: ZernoDocument) {
   let url: string;
   try {
-    url = await readFile(ZERNO_DOCUMENT_URL, { encoding: "utf-8" });
+    url = await readFile(ZERNO_DOCUMENT_URL, "utf-8");
   } catch (err) {
     const document = await zerno.documents.create<ZernoDocument>(zd);
     await mkdir(ZERNO_DIR, { recursive: true });
-    await writeFile(ZERNO_DOCUMENT_URL, document.url, { encoding: "utf-8" });
+    await writeFile(ZERNO_DOCUMENT_URL, document.url, "utf-8");
     return document;
   }
   return await zerno.documents.find<ZernoDocument>(url as AutomergeUrl);
 }
 
-async function getSyncServer(): Promise<{
-  subductionWebsocketEndpoints: string[];
-  syncServer: SyncServerSelection;
-}> {
-  const content = await readFile(SYNC_SERVER_FILE, {
-    encoding: "utf-8",
-  });
-  return JSON.parse(content);
-}
-const { syncServer, subductionWebsocketEndpoints } = await getSyncServer();
+const { syncServer, subductionWebsocketEndpoints } = await (async () => {
+  const content = await readFile(SYNC_SERVER_FILE, "utf-8");
+  return JSON.parse(content) as {
+    syncServer: SyncServerSelection;
+    subductionWebsocketEndpoints: string[];
+  };
+})();
 
 const { hive, repo } = await initializeAutomergeRepoKeyhive({
   createRepo: (config) => new Repo(config),
@@ -83,14 +86,6 @@ const zerno = new Zerno({ repo, hive });
 
 interface ZernoDocument {
   title: string;
-}
-
-function encodeContactCard(contactCard: ContactCard): string {
-  return Buffer.from(contactCard.toJson(), "utf8").toString("base64");
-}
-
-function decodeContactCard(encoded: string): ContactCard {
-  return ContactCard.fromJson(Buffer.from(encoded, "base64").toString("utf8"));
 }
 
 (async () => {
@@ -131,27 +126,24 @@ function decodeContactCard(encoded: string): ContactCard {
       }
       case "me": {
         const me = zerno.identity.me();
+        const id = uint8ArrayToHex(me.id.toBytes());
+        const peerId = me.peerId;
+        const contactCard = encodeContactCard(me.contactCard);
         switch (args[1]) {
           default: {
-            console.log(
-              colorize({
-                id: me.id,
-                peerId: me.peerId,
-                contactCard: encodeContactCard(me.contactCard),
-              }),
-            );
+            console.log(colorize({ id, peerId, contactCard }));
             break;
           }
           case "id": {
-            console.log(colorize(me.id));
+            console.log(colorize(id));
             break;
           }
           case "peer-id": {
-            console.log(colorize(me.peerId));
+            console.log(colorize(peerId));
             break;
           }
           case "contact-card": {
-            console.log(encodeContactCard(me.contactCard));
+            console.log(contactCard);
             break;
           }
         }
@@ -190,7 +182,7 @@ function decodeContactCard(encoded: string): ContactCard {
           }
           case "members": {
             const members = await zerno.access.members(handle.url);
-            members.forEach((member, i) => {
+            members.forEach((member) => {
               console.log(
                 colorize({
                   id: member.id,
@@ -217,7 +209,7 @@ function decodeContactCard(encoded: string): ContactCard {
                 signal,
               });
 
-              await writeFile(ZERNO_DOCUMENT_URL, url, { encoding: "utf-8" });
+              await writeFile(ZERNO_DOCUMENT_URL, url, "utf-8");
               console.log(colorize(`INFO: document url successfully updated`));
               console.log(
                 colorize(`INFO: restart the program to apply this change`),
@@ -233,7 +225,7 @@ function decodeContactCard(encoded: string): ContactCard {
             break;
           }
           case "grant": {
-            const access = KeyhiveAccess.tryFromString(args[2]);
+            const access = Access.tryFromString(args[2]);
             if (!access) {
               console.log(colorize("ERROR: invalid access"));
               console.log(
@@ -261,10 +253,9 @@ function decodeContactCard(encoded: string): ContactCard {
               break;
             }
 
-            // TODO: `${decodedContactCard.id}` returns '[object Object]'
             console.log(
               colorize(
-                `INFO: Access granted to user '${decodedContactCard.id}'`,
+                `INFO: Access granted to user '${uint8ArrayToHex(decodedContactCard.id.toBytes())}'`,
               ),
             );
             break;
