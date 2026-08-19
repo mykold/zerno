@@ -1,0 +1,35 @@
+{
+  "name": "zerno-chat",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "tsc --watch",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@automerge/automerge-repo": "2.6.0-subduction.40",
+    "@automerge/automerge-repo-keyhive": "0.5.0-alpha.3",
+    "@automerge/automerge-repo-storage-nodefs": "2.6.0-subduction.40",
+    "@automerge/automerge-subduction": "0.16.0",
+    "@automerge/react": "2.6.0-subduction.40",
+    "@inkjs/ui": "^2.0.0",
+    "@keyhive/keyhive": "0.1.0-alpha.8",
+    "clipboardy": "^5.3.2",
+    "ink": "^7.1.1",
+    "ink-text-input": "^6.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "zerno-core": "workspace:*",
+    "zerno-react": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/blessed": "^0.1.27",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "tsx": "^4.23.5",
+    "typescript": "^5.9.2"
+  }
+}
