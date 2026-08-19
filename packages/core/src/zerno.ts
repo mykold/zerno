@@ -21,7 +21,7 @@ export class Zerno {
     this.repo = options.repo;
     this.hive = options.hive;
     this.documents = new DocumentService(options.repo, options.hive);
-    this.access = new AccessService(options.hive);
+    this.access = new AccessService(options.repo, options.hive);
     this.identity = new IdentityService(options.hive);
   }
 }

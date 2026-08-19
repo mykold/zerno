@@ -10,7 +10,10 @@ export interface ZernoProviderProps {
 
 const ZernoContext = createContext<Zerno | null>(null);
 
-export function ZernoProvider({ zerno, children }: ZernoProviderProps): React.JSX.Element {
+export function ZernoProvider({
+  zerno,
+  children,
+}: ZernoProviderProps): React.JSX.Element {
   return (
     <ZernoContext.Provider value={zerno}>
       <RepoContext.Provider value={zerno.repo}>{children}</RepoContext.Provider>

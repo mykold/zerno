@@ -1,7 +1,6 @@
 import type { PeerId } from "@automerge/automerge-repo";
 import {
   Identifier,
-  uint8ArrayToHex,
   ContactCard,
   type AutomergeRepoKeyhive,
 } from "@automerge/automerge-repo-keyhive";
@@ -27,7 +26,6 @@ export function decodeContactCard(value: string): ContactCard {
 
 export interface Identity {
   id: Identifier;
-  peerId: PeerId;
   contactCard: ContactCard;
 }
 
@@ -39,7 +37,6 @@ export class IdentityService {
     const active = this.hive.active;
     return {
       id: active.individual.id,
-      peerId: active.peerId,
       contactCard: active.contactCard,
     };
   }

@@ -1,4 +1,4 @@
-import type { AutomergeUrl } from "@automerge/automerge-repo";
+import type { AutomergeUrl, DocumentId, Repo } from "@automerge/automerge-repo";
 import {
   Access,
   Identifier,
@@ -9,7 +9,10 @@ import {
 import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
 
 export class AccessService {
-  constructor(private readonly hive: AutomergeRepoKeyhive) {}
+  constructor(
+    private readonly repo: Repo,
+    private readonly hive: AutomergeRepoKeyhive,
+  ) {}
 
   /** Grants a contact card access to a document */
   async grant(args: {
@@ -39,12 +42,8 @@ export class AccessService {
   }): Promise<DocMember[]> {
     const members: DocMember[] = [];
     for (const member of await this.members(args.document)) {
-      const access = await this.getAccess({
-        document: args.document,
-        member: member.id,
-      });
       // 'access' must be defined, since we call '.addSyncServerRelayToDoc'
-      if (access?.atLeast(args.access)) members.push(member);
+      if (member.access?.atLeast(args.access)) members.push(member);
     }
     return members;
   }
@@ -77,7 +76,7 @@ export class AccessService {
     return access?.atLeast(args.access) ?? false;
   }
 
-  /** Adds the public identity as a document member with the specified access level */
+  /** Grants public access to a document */
   async grantPublicAccess(args: {
     document: AutomergeUrl;
     access: Access;
@@ -85,7 +84,7 @@ export class AccessService {
     await this.hive.setPublicAccess(args.document, args.access);
   }
 
-  /** Removes the public identity from the document members */
+  /** Revokes public access to a document */
   async revokePublicAccess(document: AutomergeUrl): Promise<void> {
     await this.hive.revokeMemberFromDoc(document, Identifier.publicId());
   }
