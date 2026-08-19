@@ -79,6 +79,7 @@ const { hive, repo } = await initializeAutomergeRepoKeyhive({
   repo: {
     storage,
     subductionWebsocketEndpoints,
+    enableRemoteHeadsGossiping: true,
   },
 });
 
@@ -127,11 +128,10 @@ interface ZernoDocument {
       case "me": {
         const me = zerno.identity.me();
         const id = uint8ArrayToHex(me.id.toBytes());
-        const peerId = me.peerId;
         const contactCard = encodeContactCard(me.contactCard);
         switch (args[1]) {
           default: {
-            console.log(colorize({ id, peerId, contactCard }));
+            console.log(colorize({ id, ZERNO_PEER, contactCard }));
             break;
           }
           case "id": {
@@ -139,7 +139,7 @@ interface ZernoDocument {
             break;
           }
           case "peer-id": {
-            console.log(colorize(peerId));
+            console.log(colorize(ZERNO_PEER));
             break;
           }
           case "contact-card": {

@@ -28,10 +28,10 @@
     "zerno-core": "workspace:*",
     "@automerge/automerge-repo": "2.6.0-subduction.40",
     "@automerge/react": "2.6.0-subduction.40",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "typescript": "^5.9.2"
   }
 }
