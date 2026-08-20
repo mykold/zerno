@@ -243,7 +243,7 @@ interface ZernoDocument {
 
             try {
               await zerno.access.grant({
-                document: handle.url,
+                id: handle.url,
                 contactCard: decodedContactCard,
                 access: access,
               });

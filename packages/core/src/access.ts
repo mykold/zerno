@@ -1,4 +1,4 @@
-import type { AutomergeUrl, DocumentId, Repo } from "@automerge/automerge-repo";
+import type { AutomergeUrl, Repo } from "@automerge/automerge-repo";
 import {
   Access,
   Identifier,
@@ -8,6 +8,13 @@ import {
 } from "@automerge/automerge-repo-keyhive";
 import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
 
+export function sanitazeIdentifier(
+  identifier: Identifier | string,
+): Identifier {
+  if (typeof identifier !== "string") return identifier;
+  return new Identifier(hexToUint8Array(identifier));
+}
+
 export class AccessService {
   constructor(
     private readonly repo: Repo,
@@ -16,32 +23,28 @@ export class AccessService {
 
   /** Grants a contact card access to a document */
   async grant(args: {
-    document: AutomergeUrl;
+    id: AutomergeUrl;
     contactCard: ContactCard;
     access: Access;
   }): Promise<void> {
-    await this.hive.addMemberToDoc(
-      args.document,
-      args.contactCard,
-      args.access,
-    );
+    await this.hive.addMemberToDoc(args.id, args.contactCard, args.access);
   }
 
   /** Revokes a member access from a document */
   async revoke(args: {
-    document: AutomergeUrl;
+    id: AutomergeUrl;
     member: Identifier | string;
   }): Promise<void> {
-    await this.hive.revokeMemberFromDoc(args.document, args.member);
+    await this.hive.revokeMemberFromDoc(args.id, args.member);
   }
 
   /** Returns the members of a given document that have at least the given access level */
   async membersWithAccess(args: {
-    document: AutomergeUrl;
+    id: AutomergeUrl;
     access: Access;
   }): Promise<DocMember[]> {
     const members: DocMember[] = [];
-    for (const member of await this.members(args.document)) {
+    for (const member of await this.members(args.id)) {
       // 'access' must be defined, since we call '.addSyncServerRelayToDoc'
       if (member.access?.atLeast(args.access)) members.push(member);
     }
@@ -49,43 +52,41 @@ export class AccessService {
   }
 
   /** Returns the members of a given document */
-  async members(document: AutomergeUrl): Promise<DocMember[]> {
-    return this.hive.listMembers(document);
+  async members(id: AutomergeUrl): Promise<DocMember[]> {
+    return this.hive.listMembers(id);
   }
 
   /** Returns the access level of a given member */
   async getAccess(args: {
-    document: AutomergeUrl;
+    id: AutomergeUrl;
     member: Identifier | string;
   }): Promise<Access | undefined> {
-    return this.hive.bestAccessForDoc(
-      typeof args.member === "string"
-        ? new Identifier(hexToUint8Array(args.member))
-        : args.member,
-      args.document,
-    );
+    return this.hive.bestAccessForDoc(sanitazeIdentifier(args.member), args.id);
   }
 
   /** Returns true if the current user has at least the given access level */
   async hasAtLeast(args: {
-    document: AutomergeUrl;
+    id: AutomergeUrl;
+    member: Identifier | string;
     access: Access;
   }): Promise<boolean> {
-    const id = this.hive.active.individual.id;
-    const access = await this.hive.bestAccessForDoc(id, args.document);
+    const access = await this.hive.bestAccessForDoc(
+      sanitazeIdentifier(args.member),
+      args.id,
+    );
     return access?.atLeast(args.access) ?? false;
   }
 
   /** Grants public access to a document */
   async grantPublicAccess(args: {
-    document: AutomergeUrl;
+    id: AutomergeUrl;
     access: Access;
   }): Promise<void> {
-    await this.hive.setPublicAccess(args.document, args.access);
+    await this.hive.setPublicAccess(args.id, args.access);
   }
 
   /** Revokes public access to a document */
-  async revokePublicAccess(document: AutomergeUrl): Promise<void> {
-    await this.hive.revokeMemberFromDoc(document, Identifier.publicId());
+  async revokePublicAccess(id: AutomergeUrl): Promise<void> {
+    await this.hive.revokeMemberFromDoc(id, Identifier.publicId());
   }
 }
