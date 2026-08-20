@@ -1,20 +1,61 @@
-import { useMemo, useSyncExternalStore } from "react";
-import { useRepo } from "@automerge/react/slim";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  useDocument as automergeUseDocument,
+  useDocuments as automergeUseDocuments,
+  useRepo,
+  type AnyDocumentId,
+  type ChangeDocFn,
+  type UseDocumentsOptions,
+  type UseDocumentSynchronousParams,
+} from "@automerge/react/slim";
+import type { Doc } from "@automerge/react/slim";
 import type { AutomergeUrl } from "zerno-core";
 
-// Re-render the calling component whenever the repo's live query for a
-// document changes state (loading / unavailable / ready). The fork's
-// `@automerge/react/slim:useDocument` does not observe these transitions, so without this a document
-// that was unavailable at first open (e.g. before the viewer was granted
-// access) would stay blank until a full page reload even after access arrives.
-// When keyhive access is granted, ARK's linkRepo calls
-// `repo.shareConfigChanged()`, which drives the query back to ready and fires
-// this subscription.
-export function useDocumentProgress(docUrl: AutomergeUrl): void {
+export function useDocumentProgress(id?: AnyDocumentId): void {
   const repo = useRepo();
-  const query = useMemo(() => repo.findWithProgress(docUrl), [repo, docUrl]);
+  const query = useMemo(() => {
+    if (!id) return null;
+    return repo.findWithProgress(id);
+  }, [repo, id]);
+
   useSyncExternalStore(
-    (onChange) => query.subscribe(onChange),
-    () => query.peek().state,
+    (onChange) => {
+      if (!query) return () => {};
+      return query.subscribe(onChange);
+    },
+    () => (query ? query.peek().state : undefined),
   );
+}
+
+export function useDocument<T>(
+  id?: AnyDocumentId,
+  params?: UseDocumentSynchronousParams,
+): [Doc<T>, ChangeDocFn<T>];
+
+export function useDocument<T>(
+  id?: AnyDocumentId,
+  params?: any,
+): [Doc<T> | undefined, ChangeDocFn<T>];
+
+export function useDocument<T>(id?: AnyDocumentId, params?: any): any {
+  useDocumentProgress(id);
+  return automergeUseDocument<T>(id, params);
+}
+
+export function useDocuments<T>(
+  ids: AutomergeUrl[],
+  options?: UseDocumentsOptions,
+) {
+  const repo = useRepo();
+  const [, forceRender] = useState({});
+
+  useEffect(() => {
+    const subscriptions = ids.filter(Boolean).map((id) => {
+      const query = repo.findWithProgress(id);
+      return query.subscribe(() => forceRender({}));
+    });
+    return (): void => subscriptions.forEach((unsubscribe) => unsubscribe());
+  }, [repo, JSON.stringify(ids)]);
+
+  return automergeUseDocuments<T>(ids, options);
 }
