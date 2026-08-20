@@ -25,7 +25,7 @@ export class PhonebookService {
 
     // TODO: Should this be done here?
     await this.zerno.access.grantPublicAccess({
-      document: handle.url,
+      id: handle.url,
       access: Access.read(),
     });
     return handle;
@@ -35,10 +35,13 @@ export class PhonebookService {
   async resolve(args: {
     phonebookId: AutomergeUrl;
     identifier: Identifier | string;
-  }): Promise<ContactCard | undefined> {
+  }): Promise<ContactCard> {
     const handle = await this.find(args.phonebookId);
     const json = handle.doc()[key(args.identifier)] as string | undefined;
-    if (!json) return undefined;
+    if (!json)
+      throw new Error(
+        `Contact card not found for identifier: ${args.identifier}`,
+      );
     return ContactCard.fromJson(json);
   }
 

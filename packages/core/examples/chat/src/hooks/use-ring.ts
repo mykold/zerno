@@ -22,7 +22,7 @@ export function useRing<T>({
       setIndex((index) => (index + 1) % values.length);
     }, interval);
 
-    return () => clearInterval(timer);
+    return (): void => clearInterval(timer);
   }, [values, interval]);
 
   return values[index];

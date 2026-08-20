@@ -58,7 +58,7 @@ export class WorkspaceService {
     const group = await this.zerno.documents.create<ZernoGroup>({
       name: args.name,
       phonebookId: phonebook.url,
-      messages: [],
+      messages: {},
     });
 
     // Add the group to the workspace
@@ -80,26 +80,37 @@ export class WorkspaceService {
   }
 
   async grantGroup(args: {
-    // groupId: AutomergeUrl;
     group: DocHandle<ZernoGroup>;
     contactCard: ContactCard;
     access: Access;
   }) {
-    // TODO: Specify 'AbortOptions'
     const phonebookId = args.group.doc().phonebookId;
     await this.phonebooks.add({
       phonebookId,
       contactCard: args.contactCard,
     });
+
+    // Grant access to the group
     await this.zerno.access.grant({
-      document: args.group.url,
+      id: args.group.url,
       contactCard: args.contactCard,
       access: args.access,
     });
+
+    // Grant access to the phonebook of the group
     await this.zerno.access.grant({
-      document: phonebookId,
+      id: phonebookId,
       contactCard: args.contactCard,
       access: args.access,
     });
+
+    // Grant access to all message lists of the group
+    for (const messageList of Object.values(args.group.doc().messages)) {
+      await this.zerno.access.grant({
+        id: messageList,
+        contactCard: args.contactCard,
+        access: args.access,
+      });
+    }
   }
 }

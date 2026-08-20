@@ -5,7 +5,7 @@ import type { DocHandle } from "@automerge/automerge-repo";
 import { Access } from "zerno-core";
 import type { DocMember } from "zerno-core";
 
-import { usePopup } from "../hooks/use-popup.js";
+import { useToast } from "../hooks/use-toast.js";
 import type { Service, ZernoGroup } from "../service/index.js";
 import { shrinkIdentifier, identifierColor } from "../utilities.js";
 
@@ -15,39 +15,32 @@ export interface GroupProps {
 }
 
 export function Group({ service, group }: GroupProps): React.JSX.Element {
-  const { setPopup } = usePopup();
+  const { sendToast } = useToast();
 
+  // TODO: Refactor with zerno-react:useDocuments
   const [members, setMembers] = useState<DocMember[]>([]);
-
   useEffect(() => {
     if (!group) return;
     const setMembersListener = (): void =>
       void service.zerno.access
-        .membersWithAccess({ document: group.url, access: Access.read() })
+        .membersWithAccess({ id: group.url, access: Access.read() })
         .then(setMembers)
-        .catch((err: Error) =>
-          setPopup({ variant: "error", message: err.message }),
-        );
+        .catch((err: Error) => sendToast("error", err.message));
     setMembersListener();
     group.on("change", setMembersListener);
-    return () => void group.off("change", setMembersListener);
+    return (): void => void group.off("change", setMembersListener);
   }, [group]);
 
   if (!group) {
     return (
-      <Box
-        flexGrow={1}
-        justifyContent="center"
-        alignItems="center"
-        paddingX={1}
-      >
+      <Box flexGrow={1} justifyContent="center" alignItems="center">
         <Text dimColor>Select a group to view info</Text>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column" paddingX={1} gap={1}>
+    <Box flexDirection="column" gap={1} paddingX={1}>
       <Box flexDirection="row" justifyContent="space-between">
         <Text color="#FFFFFF">{group.doc()?.name}</Text>
         <Text dimColor>

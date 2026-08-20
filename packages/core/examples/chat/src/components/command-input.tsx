@@ -12,7 +12,7 @@ import {
 } from "zerno-core";
 import type { Identity } from "zerno-core";
 
-import { usePopup } from "../hooks/use-popup.js";
+import { useToast } from "../hooks/use-toast.js";
 import type { Service, ZernoWorkspace, ZernoGroup } from "../service/index.js";
 
 export interface CommandInputProps {
@@ -34,7 +34,7 @@ export function CommandInput({
   disabled,
   borderColor,
 }: CommandInputProps): React.JSX.Element {
-  const { setPopup } = usePopup();
+  const { sendToast } = useToast();
 
   const [value, setValue] = useState("");
 
@@ -46,10 +46,7 @@ export function CommandInput({
   function newGroup(value: string): void {
     const name = value.slice("/new".length).trim();
     if (name.length === 0) {
-      setPopup({
-        variant: "error",
-        message: "Group name cannot be empty",
-      });
+      sendToast("error", "Group name cannot be empty");
       return;
     }
     service.workspaces
@@ -57,46 +54,34 @@ export function CommandInput({
         workspaceId: workspace.url,
         name,
       })
-      .then((group) =>
-        setPopup({
-          variant: "success",
-          message: "Group successfully created",
-        }),
-      )
-      .catch((err: Error) =>
-        setPopup({ variant: "error", message: err.message }),
-      );
+      .then((group) => sendToast("success", "Group successfully created"))
+      .catch((err: Error) => sendToast("error", err.message));
   }
 
   function openGroup(value: string): void {
     const id = value.slice("/open".length).trim() as AutomergeUrl;
     if (!id) {
-      setPopup({ variant: "error", message: "Id cannot be empty" });
+      sendToast("error", "Id cannot be empty");
       return;
     }
 
-    setPopup({ variant: "info", message: "Opening group..." });
+    sendToast("info", "Opening group...");
 
     service.groups
       .find(id)
       .then((group) => {
         if (groups.some((g) => g.url === group.url)) {
-          setPopup({
-            variant: "error",
-            message: "Group already opened in your workspace",
-          });
+          sendToast("error", "Group already opened in your workspace");
           return;
         }
         workspace.change((d) => d.groups.push(group.url));
       })
-      .catch((err: Error) =>
-        setPopup({ variant: "error", message: err.message }),
-      );
+      .catch((err: Error) => sendToast("error", err.message));
   }
 
   function closeGroup(value: string): void {
     if (selectedGroup === undefined) {
-      setPopup({ variant: "error", message: "Group is not selected" });
+      sendToast("error", "Group is not selected");
       return;
     }
     const group = groups[selectedGroup];
@@ -106,53 +91,41 @@ export function CommandInput({
         workspace,
         groupId: group.url,
       })
-      .then(() =>
-        setPopup({
-          variant: "success",
-          message: `Group '${group.url}' closed`,
-          timeout: 10_000 /* ms */,
-        }),
-      );
+      .then(() => sendToast("success", `Group '${group.url}' closed`));
   }
 
   function copy(value: string): void {
     const args = value.slice("/copy".length).trim().split(/\s+/, 1);
 
     if (args.length !== 1) {
-      setPopup({
-        variant: "error",
-        message: "Invalid arguments. Usage: /copy <contact-card/group-url>",
-      });
+      sendToast(
+        "error",
+        "Invalid arguments. Usage: /copy <contact-card/group-url>",
+      );
       return;
     }
     switch (args[0]) {
       case "contact-card": {
         clipboard.writeSync(encodeContactCard(me.contactCard));
-        setPopup({
-          variant: "success",
-          message: "Contact card copied to clipboard",
-        });
+        sendToast("success", "Contact card copied to clipboard");
         break;
       }
       case "group-url": {
         if (selectedGroup === undefined) {
-          setPopup({ variant: "error", message: "Group is not selected" });
+          sendToast("error", "Group is not selected");
           return;
         }
         clipboard.writeSync(
           groups[selectedGroup!].url.slice("automerge:".length),
         );
-        setPopup({
-          variant: "success",
-          message: "Group url copied to clipboard",
-        });
+        sendToast("success", "Group url copied to clipboard");
         break;
       }
       default: {
-        setPopup({
-          variant: "error",
-          message: "Invalid arguments. Usage: /copy <contact-card/group-url>",
-        });
+        sendToast(
+          "error",
+          "Invalid arguments. Usage: /copy <contact-card/group-url>",
+        );
         break;
       }
     }
@@ -160,17 +133,17 @@ export function CommandInput({
 
   function grantGroup(value: string): void {
     if (selectedGroup === undefined) {
-      setPopup({ variant: "error", message: "Group is not selected" });
+      sendToast("error", "Group is not selected");
       return;
     }
     const group = groups[selectedGroup];
 
     const args = value.slice("/grant".length).trim().split(/\s+/, 2);
     if (args.length !== 2) {
-      setPopup({
-        variant: "error",
-        message: "Invalid arguments. Usage: /grant <access> <contact-card>",
-      });
+      sendToast(
+        "error",
+        "Invalid arguments. Usage: /grant <access> <contact-card>",
+      );
       return;
     }
 
@@ -179,7 +152,7 @@ export function CommandInput({
       access = Access.fromString(args[0]);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setPopup({ variant: "error", message });
+      sendToast("error", message);
       return;
     }
 
@@ -188,7 +161,7 @@ export function CommandInput({
       contactCard = decodeContactCard(args[1]);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setPopup({ variant: "error", message });
+      sendToast("error", message);
       return;
     }
 
@@ -199,19 +172,17 @@ export function CommandInput({
         access,
       })
       .then(() =>
-        setPopup({
-          variant: "success",
-          message: "Contact card added to phonebook and access granted",
-        }),
+        sendToast(
+          "success",
+          "Contact card added to phonebook and access granted",
+        ),
       )
-      .catch((err: Error) =>
-        setPopup({ variant: "error", message: err.message }),
-      );
+      .catch((err: Error) => sendToast("error", err.message));
   }
 
   function sendMessage(value: string): void {
     if (selectedGroup === undefined) {
-      setPopup({ variant: "error", message: "Create or select a group" });
+      sendToast("error", "Group is not selected");
       return;
     }
     const group = groups[selectedGroup];
@@ -219,21 +190,16 @@ export function CommandInput({
     value = value.trim();
 
     if (value.length === 0) {
-      setPopup({ variant: "error", message: "Message cannot be empty" });
+      sendToast("error", "Message cannot be empty");
       return;
     }
 
     service.groups
       .sendMessage({
-        groupId: group.url,
-        message: {
-          author: me.id.toBytes(),
-          content: value,
-        },
+        group,
+        content: value,
       })
-      .catch((err: Error) =>
-        setPopup({ variant: "error", message: err.message }),
-      );
+      .catch((err: Error) => sendToast("error", err.message));
   }
 
   const commands: Record<string, (value: string) => void> = {
@@ -257,7 +223,7 @@ export function CommandInput({
 
     const handler = commands[command];
     if (!handler) {
-      setPopup({ variant: "error", message: "Invalid command" });
+      sendToast("error", "Invalid command");
       return;
     }
     handler(value);

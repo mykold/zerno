@@ -7,7 +7,7 @@ import { encodeContactCard } from "zerno-core";
 import { ZernoProvider } from "zerno-react";
 
 import { useRing } from "./hooks/use-ring.js";
-import { usePopup, PopupProvider } from "./hooks/use-popup.js";
+import { useToast, ToastProvider, Toast } from "./hooks/use-toast.js";
 import type { Service, ZernoWorkspace, ZernoGroup } from "./service/index.js";
 import { shrinkIdentifier, rotate } from "./utilities.js";
 import {
@@ -22,17 +22,11 @@ export interface AppProps {
   workspaceId: AutomergeUrl;
 }
 
-export interface PopupProps {
-  variant: "info" | "success" | "error" | "warning"; // inherit from 'StatusMessageVariant',
-  message: string;
-  timeout?: number;
-}
-
 const app = { columns: 60, rows: 12 };
 
 export function App({ service, workspaceId }: AppProps): React.JSX.Element {
   const terminal = useWindowSize();
-  const { popup, setPopup } = usePopup();
+  const { toasts, sendToast } = useToast();
 
   const [workspace, setWorkspace] = useState<DocHandle<ZernoWorkspace> | null>(
     null,
@@ -41,11 +35,10 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
     service.workspaces
       .find(workspaceId)
       .then(setWorkspace)
-      .catch((err: Error) =>
-        setPopup({ variant: "error", message: err.message }),
-      );
+      .catch((err: Error) => sendToast("error", err.message));
   }, [workspaceId]);
 
+  // TODO: Refactor with zerno-react:useDocuments
   const [groups, setGroups] = useState<DocHandle<ZernoGroup>[]>([]);
   useEffect(() => {
     if (!workspace) return;
@@ -53,12 +46,10 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
       void service.workspaces
         .findGroups({ workspace: workspace.doc() })
         .then(setGroups)
-        .catch((err: Error) =>
-          setPopup({ variant: "error", message: err.message }),
-        );
+        .catch((err: Error) => sendToast("error", err.message));
     setGroupsListener();
     workspace.on("change", setGroupsListener);
-    return () => void workspace.off("change", setGroupsListener);
+    return (): void => void workspace.off("change", setGroupsListener);
   }, [workspace]);
 
   const boxes = ["command-input", "groups"] as const;
@@ -117,7 +108,20 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
       </Text>
     );
   }
-  if (!workspace) return <Spinner label="Workspace" />;
+  if (!workspace) {
+    if (toasts.length !== 0) {
+      return (
+        <Box>
+          {toasts.map((toast) => (
+            <Box key={toast.id}>
+              <Text>{toast.message}</Text>
+            </Box>
+          ))}
+        </Box>
+      );
+    }
+    return <Spinner label="Loading workspace..." />;
+  }
 
   return (
     <Box flexDirection="column" width={terminal.columns} height={terminal.rows}>
@@ -135,11 +139,6 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
         </Box>
         <Box flexDirection="row" justifyContent="space-between">
           <Text dimColor>tab ・ shift+tab ・ ↓ ・ ↑</Text>
-          {popup && (
-            <StatusMessage variant={popup.variant}>
-              {popup.message}
-            </StatusMessage>
-          )}
           <Text dimColor>
             /new {"[name]"} ・ /grant {"[access] [contact-card]"} ・ /open{" "}
             {"[group-url]"} ・ /close ・ /copy {"[contact-card/group-url]"}
@@ -165,6 +164,7 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
         >
           <Text color="#00FFFF">Messages</Text>
           <MessageList
+            service={service}
             groupId={groups[selectedGroup!]?.url}
             limit={terminal.rows}
           />
@@ -190,6 +190,7 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
         }
         disabled={selectedBox !== "command-input"}
       />
+      <Toast />
     </Box>
   );
 }
@@ -197,9 +198,9 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
 export function render(props: AppProps) {
   return inkRender(
     <ZernoProvider zerno={props.service.zerno}>
-      <PopupProvider>
+      <ToastProvider>
         <App {...props} />
-      </PopupProvider>
+      </ToastProvider>
     </ZernoProvider>,
   );
 }

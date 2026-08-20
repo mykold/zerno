@@ -3,9 +3,14 @@
 // See {@link GroupService.sendMessage} TODO
 
 export interface ZernoMessage {
-  // We store the author explicitly because `membersWithAccess` does not guarantee
-  // ordering by add time. Since the message has the same admins as the group, we
-  // identify its single author using `.id.toBytes()`.
-  author: Uint8Array /* @automerge/automerge-repo-keyhive:Identifier */;
+  // We store the author explicitly here because `findMessages` merges
+  // all message lists into a single array.
+  // author: string /* @automerge/automerge-repo-keyhive:Identifier */;
   content: string;
+  createdAt: number;
+  author: string /* Inherited from ZernoMessageList, @automerge/automerge-repo-keyhive:Identifier */;
+}
+
+export interface ZernoMessageList {
+  messages: ZernoMessage[];
 }
