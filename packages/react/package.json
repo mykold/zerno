@@ -19,20 +19,23 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "peerDependencies": {
-    "zerno-core": "workspace:*",
-    "@automerge/automerge-repo": "2.6.0-subduction.40",
-    "@automerge/react": "2.6.0-subduction.40",
+    "@automerge/automerge-repo": "2.6.0-subduction.48",
+    "@automerge/react": "2.6.0-subduction.48",
     "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "zerno-core": "workspace:*"
   },
   "devDependencies": {
-    "zerno-core": "workspace:*",
-    "@automerge/automerge-repo": "2.6.0-subduction.40",
-    "@automerge/react": "2.6.0-subduction.40",
+    "@automerge/automerge-repo": "2.6.0-subduction.48",
+    "@automerge/react": "2.6.0-subduction.48",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "zerno-core": "workspace:*"
+  },
+  "dependencies": {
+    "@automerge/automerge": "^3.4.1"
   }
 }

@@ -1,0 +1,365 @@
+diff --git a/dist/Repo.d.ts b/dist/Repo.d.ts
+index 15d4ca65aa613fb567335f09c8fcb8cb9c4a954a..d6b00fd4fc48b34395c83baee1db1df07357d52f 100644
+--- a/dist/Repo.d.ts
++++ b/dist/Repo.d.ts
+@@ -320,6 +320,17 @@ export type RepoFindOptions = {
+      * {@link Repo.findWithProgress} to get progress information.
+      */
+     allowableStates?: string[];
++    /**
++     * How long in milliseconds find() keeps retrying while the document is
++     * unavailable.
++     *
++     * One possible scenario: a peer learns about a document before its
++     * decryption keys arrive. Every attempt fails until the keys sync, so
++     * find() keeps retrying within this budget instead of failing outright.
++     *
++     * Defaults to {@link DEFAULT_UNAVAILABLE_RETRY_MS}.
++     */
++    unavailableRetryMs?: number;
+ };
+ export type { SyncInfo } from "./DocHandle.js";
+ export type DeleteDocumentPayload = {
+diff --git a/dist/Repo.js b/dist/Repo.js
+index adfddd9b3926510604274217c42f97f104e119a3..ee0836ab456693cbdeef23d084850205cb58bed9 100644
+--- a/dist/Repo.js
++++ b/dist/Repo.js
+@@ -22,6 +22,13 @@ import { hasAtLeastOneKey } from "./helpers/has-at-least-one-key.js";
+ import { noop } from "./helpers/noop.js";
+ export { DocumentQuery } from "./DocumentQuery.js";
+ let subductionLoggingEnabled = false;
++/** Pause between find() retries while a document is unavailable. */
++const FIND_RETRY_DELAY_MS = 500;
++/**
++ * Default budget for the unavailable-retry loop in `Repo.find`: a single
++ * attempt, no retries.
++ */
++const DEFAULT_UNAVAILABLE_RETRY_MS = 0;
+ function randomPeerId() {
+     return ("peer-" + Math.random().toString(36).slice(4));
+ }
+@@ -445,7 +452,8 @@ export class Repo extends EventEmitter {
+         // This is all really in service of wiring up keyhive and we probably need to find a
+         // nicer way to achieve this.
+         let initialDoc;
+-        if (initialValue) {
++        // If the initial value is an empty object, use the empty change initialisation path instead of the from path
++        if (isPlainObject(initialValue) && hasAtLeastOneKey(initialValue)) {
+             initialDoc = Automerge.from(initialValue);
+         }
+         else {
+@@ -528,12 +536,35 @@ export class Repo extends EventEmitter {
+      * load. An aborted wait rejects with `signal.reason`.
+      */
+     async find(id, options = {}) {
+-        const { signal } = options;
++        const { signal, unavailableRetryMs } = options;
+         signal?.throwIfAborted();
+-        // `findWithProgress` already applies any path suffix (`/a/@0/b`) and
+-        // fixed heads (`#h1|h2`) from the URL, so the ready handle is correctly
+-        // scoped and/or view-pinned.
+-        return this.findWithProgress(id).whenReady({ signal });
++        const documentId = interpretAsDocumentId(id);
++        const deadline = Date.now() +
++            (typeof unavailableRetryMs === "number"
++                ? unavailableRetryMs
++                : DEFAULT_UNAVAILABLE_RETRY_MS);
++        for (;;) {
++            // A query that settled to "unavailable" is dead: it rejects every
++            // future waiter even though the reason it failed (e.g. decryption
++            // keys not yet arrived) may be long gone. Evict it so this attempt
++            // starts a fresh query.
++            if (this.#queries[documentId]?.peek()?.state === "unavailable") {
++                await this.removeFromCache(documentId);
++            }
++            try {
++                // `findWithProgress` already applies any path suffix (`/a/@0/b`) and
++                // fixed heads (`#h1|h2`) from the URL, so the ready handle is correctly
++                // scoped and/or view-pinned.
++                return await this.findWithProgress(id).whenReady({ signal });
++            }
++            catch (e) {
++                if (signal?.aborted) throw e;
++                const message = e instanceof Error ? e.message : String(e);
++                if (!message.includes("unavailable") || Date.now() >= deadline)
++                    throw e;
++                await new Promise(resolve => setTimeout(resolve, FIND_RETRY_DELAY_MS));
++            }
++        }
+     }
+     /**
+      * @deprecated Alias for {@link Repo.find}. Will be removed in the next major release
+diff --git a/dist/subduction/source.js b/dist/subduction/source.js
+index 4692619444edfae0ef5f111cef6ce29499507afa..476618b6ecab0cab9aacae50d7ed7705684d68d8 100644
+--- a/dist/subduction/source.js
++++ b/dist/subduction/source.js
+@@ -457,7 +457,23 @@ export class SubductionSource {
+         })();
+         this.#scheduleRecompute(this.#entries.get(sidStr));
+     }
+-    detach(_documentId) { }
++    detach(documentId) {
++        // Drop the entry so a later `attach()` for the same sedimentree binds
++        // to the fresh query/handle. `Repo.removeFromCache()` calls this when
++        // a dead query is evicted; the subsequent `find()` creates a new
++        // DocHandle, and without this detach the entry would stay bound to
++        // the orphaned handle — local changes made through the new handle
++        // would never be saved to Subduction, and inbound sync data would
++        // never reach the new handle.
++        const sidStr = toSedimentreeId(documentId).toString();
++        const entry = this.#entries.get(sidStr);
++        if (!entry)
++            return;
++        this.#log.warn(`[DIAG detach] ${sidStr.slice(0, 8)}: dropping entry (handle rebound)`);
++        this.#entries.delete(sidStr);
++        this.#recomputeDirty.delete(sidStr);
++        this.#scheduler.resetHealState(sidStr);
++    }
+     shareConfigChanged() {
+         for (const entry of this.#entries.values()) {
+             // A share-config change can flip a previously-denied fetch to
+@@ -480,7 +496,7 @@ export class SubductionSource {
+             // now make them transformable, so re-transform locally. Defer the local
+             // re-transform during an in-flight sync to avoid racing with its handle
+             // update.
+-            if (entry.syncState === "running" && entry.hasUntransformedBlobs) {
++            if (entry.hasUntransformedBlobs) {
+                 const empty = Automerge.getHeads(entry.handle.fullDoc()).length === 0;
+                 if (entry.syncInFlight) {
+                     entry.retryTransformAfterSync = true;
+@@ -625,6 +641,15 @@ export class SubductionSource {
+                         entry.syncInFlight = true;
+                         void this.#doSync(entry);
+                     }
++                    else if (Automerge.getHeads(entry.handle.fullDoc()).length === 0 &&
++                        entry.lastSyncResult === "all-failed") {
++                        // Transient all-peers-failed (e.g. keyhive membership has
++                        // not fully propagated yet, so peers report us
++                        // unauthorized): the heal scheduler keeps retrying this
++                        // sedimentree, so hold the query open instead of
++                        // permanently marking it unavailable.
++                        entry.query.sourcePending("subduction");
++                    }
+                     else if (Automerge.getHeads(entry.handle.fullDoc()).length === 0 &&
+                         !this.#anyConnectionManagerConnecting()) {
+                         // All connections settled and sync failed — give up.
+@@ -662,7 +687,28 @@ export class SubductionSource {
+             entry.flushSave.flush();
+             await entry.saveSettled;
+             this.#log.debug(`doSync ${sid} (state=${entry.syncState})`);
+-            const peerResultMap = await subduction.syncWithAllPeers(sedimentreeId, true, timeoutMs !== undefined ? timeoutMs : this.#syncTimeout);
++            let peerResultMap;
++            if (entry.forceFullSync) {
++                // Full re-sync across every known tree: recomputes remote
++                // knowledge from scratch so a stale "settled" per-peer view
++                // can't keep advertising fingerprint=0 while peers have
++                // newer commits.
++                entry.forceFullSync = false;
++                this.#log.debug(`doSync ${sid}: forceFullSync -> fullSyncWithAllPeers`);
++                const now = Date.now();
++                const timeout = timeoutMs !== undefined ? timeoutMs : this.#syncTimeout;
++                if (entry.__lastFullSyncAt === undefined || now - entry.__lastFullSyncAt >= 1000) {
++                    entry.__lastFullSyncAt = now;
++                    const full = await subduction.fullSyncWithAllPeers(timeout);
++                    peerResultMap = { entries: () => [full] };
++                }
++                else {
++                    peerResultMap = await subduction.syncWithAllPeers(sedimentreeId, true, timeout);
++                }
++            }
++            else {
++                peerResultMap = await subduction.syncWithAllPeers(sedimentreeId, true, timeoutMs !== undefined ? timeoutMs : this.#syncTimeout);
++            }
+             const results = peerResultMap.entries();
+             const anySuccess = results.some(r => r.success);
+             this.#log.debug(`doSync ${sid}: ${results.length} peer(s), success=${anySuccess}`);
+@@ -903,7 +949,7 @@ export class SubductionSource {
+             try {
+                 await yieldToMacrotask();
+                 entry.transformRetryScheduled = false;
+-                if (entry.hasUntransformedBlobs && entry.syncState === "running") {
++                if (entry.hasUntransformedBlobs) {
+                     await this.#reloadBlobs(entry);
+                 }
+             }
+@@ -1321,6 +1367,34 @@ export class SubductionSource {
+             return;
+         this.#scheduler.resetHealState(sid);
+         entry.lastSyncResult = null;
++        // Throttle full-sync forcing: resync() can fire every couple of
++        // seconds from an app-level keepalive loop; a full cross-tree sync
++        // per call would drown the connection.
++        const now = Date.now();
++        if (!entry.__lastForceFullAt || now - entry.__lastForceFullAt >= 10000) {
++            entry.__lastForceFullAt = now;
++            entry.forceFullSync = true;
++        }
++        // Periodically recycle the connection: the sync server only serves
++        // tree state at subscription time and never pushes deltas to already
++        // -subscribed peers, so a long-lived connection starves. A fresh
++        // connection gets a fresh full exchange (same reason an app restart
++        // "fixes" delivery).
++        // Never recycle while some document is still doing its very first
++        // load — dropping the connection mid-bootstrap starves it.
++        const bootstrapping = [...this.#entries.values()].some(e => e.syncState === "initializing");
++        const recycleIntervalMs = globalThis.__ZERNO_SUBDUCTION_RECYCLE_MS ?? 15000;
++        if (!this.__lastRecycleAt)
++            this.__lastRecycleAt = now;
++        if (!bootstrapping &&
++            now - this.__lastRecycleAt >= recycleIntervalMs) {
++            this.__lastRecycleAt = now;
++            this.#log.debug(`resync ${sid.slice(0, 8)}: recycling subduction connection`);
++            void Promise.resolve(this.#subduction)
++                .then(s => s.disconnectAll())
++                .then(() => this.#log.debug("resync: disconnectAll done, waiting for reconnect"))
++                .catch(e => this.#log.debug("recycle disconnectAll failed: %O", e));
++        }
+         this.#scheduleRecompute(entry);
+     }
+     // ── Flush ───────────────────────────────────────────────────────────
+diff --git a/dist/subduction/storage.js b/dist/subduction/storage.js
+index 37f9cc727f7ab1d24118879efadc4bb44f90e827..1d7e3155251cc04acdceec48c5633680391b8074 100644
+--- a/dist/subduction/storage.js
++++ b/dist/subduction/storage.js
+@@ -228,19 +228,47 @@ export class SubductionStorageBridge {
+     }
+     // ==================== Sedimentree IDs ====================
+     async saveSedimentreeId(sedimentreeId) {
+-        const key = [this.prefix, IDS_PREFIX, sedimentreeId.toString()];
+-        await this.guarded("saveSedimentreeId", undefined, () => this.adapter.save(key, ID_MARKER));
++        const idStr = sedimentreeId.toString();
++        if (this.cachedSedimentreeIds && this.cachedSedimentreeIds.has(idStr)) {
++            return; // Already saved
++        }
++        if (!this._savingSedimentreeIds) {
++            this._savingSedimentreeIds = new Map();
++        }
++        if (this._savingSedimentreeIds.has(idStr)) {
++            return this._savingSedimentreeIds.get(idStr);
++        }
++        const key = [this.prefix, IDS_PREFIX, idStr];
++        const promise = this.guarded("saveSedimentreeId", undefined, () => this.adapter.save(key, ID_MARKER))
++            .then(() => {
++                if (this.cachedSedimentreeIds) {
++                    this.cachedSedimentreeIds.add(idStr);
++                }
++            })
++            .finally(() => {
++                this._savingSedimentreeIds.delete(idStr);
++            });
++        this._savingSedimentreeIds.set(idStr, promise);
++        return promise;
+     }
+     async deleteSedimentreeId(sedimentreeId) {
+         const key = [this.prefix, IDS_PREFIX, sedimentreeId.toString()];
+         await this.guarded("deleteSedimentreeId", undefined, () => this.adapter.remove(key));
++        if (this.cachedSedimentreeIds) {
++            this.cachedSedimentreeIds.delete(sedimentreeId.toString());
++        }
+     }
+     async loadAllSedimentreeIds() {
+         return this.guarded("loadAllSedimentreeIds", [], async () => {
++            if (this.cachedSedimentreeIds) {
++                return Array.from(this.cachedSedimentreeIds).map(hex => SedimentreeId.fromBytes(hexToBytes(hex)));
++            }
+             const chunks = await this.adapter.loadRange([this.prefix, IDS_PREFIX]);
+-            return chunks
++            const idsHex = chunks
+                 .filter(chunk => chunk.key.length === 3 && chunk.data)
+-                .map(chunk => SedimentreeId.fromBytes(hexToBytes(chunk.key[2])));
++                .map(chunk => chunk.key[2]);
++            this.cachedSedimentreeIds = new Set(idsHex);
++            return idsHex.map(hex => SedimentreeId.fromBytes(hexToBytes(hex)));
+         });
+     }
+     // ==================== Commits (compound storage with blob) ====================
+@@ -523,6 +551,9 @@ export class SubductionStorageBridge {
+                     await this.adapter.saveBatch(metaEntries);
+                 }
+                 await this.adapter.saveBatch([markerEntry]);
++                if (this.cachedSedimentreeIds) {
++                    this.cachedSedimentreeIds.add(sid);
++                }
+                 // Defensive copy per event; see comment in saveCommit.
+                 if (this.listeners["commit-saved"]?.length) {
+                     commits.forEach(({ commitId }, i) => {
+diff --git a/src/subduction/storage.ts b/src/subduction/storage.ts
+index bda00635ccb518d9ab6c8e3e79639709936ea48e..ab7707ab7d1bbb2ff7bdad7818bd6259cc464021 100644
+--- a/src/subduction/storage.ts
++++ b/src/subduction/storage.ts
+@@ -326,13 +326,36 @@ export class SubductionStorageBridge implements SedimentreeStorage {
+     )
+   }
+ 
++  private cachedSedimentreeIds?: Set<string>;
++
++  private _savingSedimentreeIds = new Map<string, Promise<void>>()
++
+   // ==================== Sedimentree IDs ====================
+ 
+   async saveSedimentreeId(sedimentreeId: SedimentreeId): Promise<void> {
+-    const key = [this.prefix, IDS_PREFIX, sedimentreeId.toString()]
+-    await this.guarded("saveSedimentreeId", undefined, () =>
++    const idStr = sedimentreeId.toString()
++    if (this.cachedSedimentreeIds && this.cachedSedimentreeIds.has(idStr)) {
++      return // Already saved
++    }
++    if (this._savingSedimentreeIds.has(idStr)) {
++      return this._savingSedimentreeIds.get(idStr)
++    }
++
++    const key = [this.prefix, IDS_PREFIX, idStr]
++    const promise = this.guarded("saveSedimentreeId", undefined, () =>
+       this.adapter.save(key, ID_MARKER)
+     )
++      .then(() => {
++        if (this.cachedSedimentreeIds) {
++          this.cachedSedimentreeIds.add(idStr)
++        }
++      })
++      .finally(() => {
++        this._savingSedimentreeIds.delete(idStr)
++      })
++
++    this._savingSedimentreeIds.set(idStr, promise)
++    return promise
+   }
+ 
+   async deleteSedimentreeId(sedimentreeId: SedimentreeId): Promise<void> {
+@@ -340,14 +363,24 @@ export class SubductionStorageBridge implements SedimentreeStorage {
+     await this.guarded("deleteSedimentreeId", undefined, () =>
+       this.adapter.remove(key)
+     )
++    if (this.cachedSedimentreeIds) {
++      this.cachedSedimentreeIds.delete(sedimentreeId.toString())
++    }
+   }
+ 
+   async loadAllSedimentreeIds(): Promise<SedimentreeId[]> {
+     return this.guarded("loadAllSedimentreeIds", [], async () => {
++      if (this.cachedSedimentreeIds) {
++        return Array.from(this.cachedSedimentreeIds).map(hex => 
++          SedimentreeId.fromBytes(hexToBytes(hex))
++        )
++      }
+       const chunks = await this.adapter.loadRange([this.prefix, IDS_PREFIX])
+-      return chunks
++      const idsHex = chunks
+         .filter(chunk => chunk.key.length === 3 && chunk.data)
+-        .map(chunk => SedimentreeId.fromBytes(hexToBytes(chunk.key[2])))
++        .map(chunk => chunk.key[2])
++      this.cachedSedimentreeIds = new Set(idsHex)
++      return idsHex.map(hex => SedimentreeId.fromBytes(hexToBytes(hex)))
+     })
+   }
+ 
+@@ -729,6 +762,9 @@ export class SubductionStorageBridge implements SedimentreeStorage {
+           await this.adapter.saveBatch(metaEntries)
+         }
+         await this.adapter.saveBatch([markerEntry])
++        if (this.cachedSedimentreeIds) {
++          this.cachedSedimentreeIds.add(sid)
++        }
+ 
+         // Defensive copy per event; see comment in saveCommit.
+         if (this.listeners["commit-saved"]?.length) {

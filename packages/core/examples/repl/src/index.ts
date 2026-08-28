@@ -48,17 +48,19 @@ async function getPeerId(): Promise<PeerId> {
 }
 const ZERNO_PEER = await getPeerId();
 
-async function getDocument(zd: ZernoDocument) {
-  let url: string;
+async function getDocument(
+  zd: ZernoDocument,
+): Promise<DocHandle<ZernoDocument>> {
+  let id: string;
   try {
-    url = await readFile(ZERNO_DOCUMENT_URL, "utf-8");
+    id = await readFile(ZERNO_DOCUMENT_URL, "utf-8");
   } catch (err) {
     const document = await zerno.documents.create<ZernoDocument>(zd);
     await mkdir(ZERNO_DIR, { recursive: true });
     await writeFile(ZERNO_DOCUMENT_URL, document.url, "utf-8");
     return document;
   }
-  return await zerno.documents.find<ZernoDocument>(url as AutomergeUrl);
+  return await zerno.documents.find<ZernoDocument>(id as AutomergeUrl);
 }
 
 const { syncServer, subductionWebsocketEndpoints } = await (async () => {

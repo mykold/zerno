@@ -1,0 +1,28 @@
+diff --git a/dist/keyhive/blob-interceptor.js b/dist/keyhive/blob-interceptor.js
+index 0f8cc071ceeb6a0baea61641e9fbced477ee8e47..c440c57bed84ce5614a1b68fc3a5ab84f06ddf87 100644
+--- a/dist/keyhive/blob-interceptor.js
++++ b/dist/keyhive/blob-interceptor.js
+@@ -244,8 +244,10 @@ export class KeyhiveBlobInterceptor {
+             return blob;
+         return this.#queue.run(async () => {
+             const doc = await this.#keyhive.getDocument(new KeyhiveDocumentId(binaryDocumentId));
+-            if (!doc)
++            if (!doc) {
++                log.debug(`[KeyhiveBlobInterceptor] transformIncoming: no keyhive document for ${documentId}; leaving pending`);
+                 return null;
++            }
+             // Decrypt this blob and, on a cold load, walk its predecessor chain by
+             // loading just the parent blobs it points at. Collect this blob's
+             // plaintext plus any ancestor plaintexts the walk recovers. Their
+@@ -253,8 +255,10 @@ export class KeyhiveBlobInterceptor {
+             const out = [];
+             const seen = new Set();
+             const ok = await this.#decryptAndWalk(doc, commitId, blob, loadBlob, out, seen);
+-            if (!ok)
++            if (!ok) {
++                log.debug(`[KeyhiveBlobInterceptor] transformIncoming: decrypt failed for ${documentId} commit=${commitId || "<bulk>"}; leaving pending`);
+                 return null;
++            }
+             return out.length === 1 ? out[0] : concatBytes(out);
+         });
+     }

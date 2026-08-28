@@ -1,4 +1,3 @@
-import type { PeerId } from "@automerge/automerge-repo";
 import {
   Identifier,
   ContactCard,
