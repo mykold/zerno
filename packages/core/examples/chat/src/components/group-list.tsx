@@ -1,19 +1,20 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { DocHandle } from "@automerge/automerge-repo";
+import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 
 import type { ZernoGroup } from "../service/index.js";
+import type { DocMap } from "@automerge/react";
 
 export interface GroupListProps {
-  groups: DocHandle<ZernoGroup>[];
-  selectedGroup: number | undefined;
+  groups: DocMap<ZernoGroup>;
+  selectedGroupId: AutomergeUrl | undefined;
 }
 
 export function GroupList({
   groups,
-  selectedGroup,
+  selectedGroupId,
 }: GroupListProps): React.JSX.Element {
-  if (groups.length === 0)
+  if (groups.size === 0)
     return (
       <Box flexGrow={1} justifyContent="center" alignItems="center">
         <Text dimColor>No groups</Text>
@@ -22,10 +23,10 @@ export function GroupList({
 
   return (
     <Box flexDirection="column">
-      {groups.map((group, i) => (
-        <Box key={group.url}>
-          <Text color="yellow">{i === selectedGroup ? "> " : "  "}</Text>
-          <Text wrap="wrap">{group.doc().name}</Text>
+      {Array.from(groups.entries()).map(([url, group]) => (
+        <Box key={url}>
+          <Text color="yellow">{url === selectedGroupId ? "> " : "  "}</Text>
+          <Text wrap="wrap">{group.name}</Text>
         </Box>
       ))}
     </Box>

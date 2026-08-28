@@ -6,12 +6,12 @@ import { useDocument, useDocuments } from "zerno-react";
 
 import type {
   ZernoMessage,
-  Service,
   ZernoMessageList,
   ZernoGroup,
 } from "../service/index.js";
 import { applyQueryOption } from "../service/index.js";
 import { identifierColor, shrinkIdentifier } from "../utilities.js";
+import { useToast } from "../hooks/use-toast.js";
 
 function formatRelativeTime(createdAt: number) {
   const seconds = Math.floor((Date.now() - createdAt) / 1000);
@@ -47,25 +47,40 @@ export function MessageItem({ author, item }: MessageItemProps) {
 // MARK: MessageList
 
 export interface MessageListProps {
-  service: Service;
-  groupId: AutomergeUrl;
+  groupId: AutomergeUrl | undefined;
   limit: number;
 }
 
 export function MessageList({
-  service,
   groupId,
   limit,
 }: MessageListProps): React.JSX.Element {
   const [group] = useDocument<ZernoGroup>(groupId);
 
-  const messageIds = useMemo(
-    () => Object.values(group?.messages ?? {}),
-    [group?.messages],
-  );
-  const [messageLists] = useDocuments<ZernoMessageList>(messageIds, {
+  const messageListUrls = useMemo(() => {
+    if (!group?.messages) return [];
+    return Object.values(group.messages);
+  }, [group?.messages]);
+
+  const [messageLists] = useDocuments<ZernoMessageList>(messageListUrls, {
     suspense: false,
   });
+
+  // TODO: The speed will depend heavily on the number of messages;
+  // we need to come up with a smart mechanism that will retrieve
+  // only the most recent X messages.
+  const messages = useMemo(() => {
+    const messages: ZernoMessage[] = [];
+    for (const doc of messageLists.values()) {
+      if (!doc) continue;
+      messages.push(...doc.messages);
+    }
+    messages.sort((a, b) => a.createdAt - b.createdAt);
+    return applyQueryOption(messages, {
+      limit,
+      offset: Math.max(0, messages.length - limit),
+    });
+  }, [messageLists, limit]);
 
   if (!group) {
     return (
@@ -74,20 +89,6 @@ export function MessageList({
       </Box>
     );
   }
-
-  // TODO: The speed will depend heavily on the number of messages;
-  // we need to come up with a smart mechanism that will retrieve
-  // only the most recent X messages.
-  let messages: ZernoMessage[] = [];
-  messageLists.forEach((doc) => {
-    if (!doc) return;
-    messages.push(...doc.messages);
-  });
-  messages.sort((a, b) => a.createdAt - b.createdAt);
-  messages = applyQueryOption(messages, {
-    limit,
-    offset: Math.max(0, messages.length - limit),
-  });
 
   if (messages.length === 0) {
     return (
@@ -101,7 +102,7 @@ export function MessageList({
     <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
       {messages.slice().map((item) => (
         <MessageItem
-          key={item.createdAt}
+          key={`${item.author}-${item.createdAt}`}
           author={item.author}
           item={item}
         ></MessageItem>

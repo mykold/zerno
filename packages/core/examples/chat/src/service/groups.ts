@@ -4,14 +4,11 @@ import { Access } from "zerno-core";
 import type { Zerno } from "zerno-core";
 import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive";
 
-import { applyQueryOption } from "./query-option.js";
-import type { QueryOption } from "./query-option.js";
-import type { ZernoMessageList, ZernoMessage } from "./messages.js";
+import type { ZernoMessageList } from "./messages.js";
 import type { PhonebookService } from "./phonebook.js";
 
 export interface ZernoGroup {
   name: string;
-  // TODO: Consider replacing with a map-based set (`Record<AutomergeUrl, true>`) for O(1) lookups
   phonebookId: AutomergeUrl;
   messages: Record<
     string /* Identifier */,
@@ -29,8 +26,11 @@ export class GroupService {
     groupId: AutomergeUrl,
     timeout: number = 60_000 /* ms */,
   ): Promise<DocHandle<ZernoGroup>> {
-    const signal = AbortSignal.timeout(timeout);
-    return await this.zerno.documents.find<ZernoGroup>(groupId, { signal });
+    // documents.find retries internally while the document is unavailable
+    // (e.g. keyhive capability grants still in flight).
+    return await this.zerno.documents.find<ZernoGroup>(groupId, {
+      signal: AbortSignal.timeout(timeout),
+    });
   }
 
   async sendMessage(args: { group: DocHandle<ZernoGroup>; content: string }) {
@@ -80,6 +80,9 @@ export class GroupService {
         access: Access.read(),
       });
     }
+
+    // Flush capability grants immediately so peers get decryption keys ASAP.
+    this.zerno.syncKeyhive();
 
     if (!args.group.doc().messages[author]) {
       args.group.change((d) => (d.messages[author] = messageList.url));

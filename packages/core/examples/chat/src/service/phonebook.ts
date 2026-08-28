@@ -5,6 +5,8 @@ import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 
 import { Zerno } from "zerno-core";
 
+import type { GroupService } from "./groups.js";
+
 function key(identifier: Identifier | string): string {
   if (typeof identifier === "string") return identifier;
   return uint8ArrayToHex(identifier.toBytes());
@@ -15,15 +17,18 @@ export type ZernoPhonebook = Record<string, string>;
 export class PhonebookService {
   constructor(private readonly zerno: Zerno) {}
 
-  async find(id: AutomergeUrl): Promise<DocHandle<ZernoPhonebook>> {
-    // TODO: Specify 'AbortOptions'
-    return await this.zerno.documents.find<ZernoPhonebook>(id);
+  async find(
+    id: AutomergeUrl,
+    timeout: number = 60_000 /* ms */,
+  ): Promise<DocHandle<ZernoPhonebook>> {
+    const signal = AbortSignal.timeout(timeout);
+    return await this.zerno.documents.find<ZernoPhonebook>(id, { signal });
   }
 
   async create(): Promise<DocHandle<ZernoPhonebook>> {
     const handle = await this.zerno.documents.create<ZernoPhonebook>({});
 
-    // TODO: Should this be done here?
+    /** TODO: Maybe should be moved outside? See {@link GroupService.grantGroup} */
     await this.zerno.access.grantPublicAccess({
       id: handle.url,
       access: Access.read(),

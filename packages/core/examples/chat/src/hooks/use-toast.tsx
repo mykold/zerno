@@ -21,7 +21,11 @@ export interface ToastProps {
 
 interface ToastContextValue {
   toasts: ToastProps[];
-  sendToast(variant: ToastVariant, message: string, timeout?: number): void;
+  sendToast(
+    variant: ToastVariant,
+    message: Error | string,
+    timeout?: number,
+  ): void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -37,13 +41,13 @@ export function ToastProvider({
 
   function sendToast(
     variant: ToastVariant,
-    message: string,
+    message: Error | string,
     timeout = DefaultToastTimeout,
   ): void {
     const toast: ToastProps = {
       id: toastId++,
       variant,
-      message,
+      message: message instanceof Error ? message.message : String(message),
       expiresAt: Date.now() + timeout,
     };
 

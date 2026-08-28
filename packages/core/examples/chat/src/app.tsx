@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { render as inkRender, Box, Text, useInput, useWindowSize } from "ink";
-import { Spinner, StatusMessage } from "@inkjs/ui";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
+import { Spinner } from "@inkjs/ui";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
 
 import { encodeContactCard } from "zerno-core";
-import { ZernoProvider } from "zerno-react";
+import { useDocument, useDocuments, ZernoProvider } from "zerno-react";
 
 import { useRing } from "./hooks/use-ring.js";
 import { useToast, ToastProvider, Toast } from "./hooks/use-toast.js";
@@ -26,31 +26,12 @@ const app = { columns: 60, rows: 12 };
 
 export function App({ service, workspaceId }: AppProps): React.JSX.Element {
   const terminal = useWindowSize();
-  const { toasts, sendToast } = useToast();
+  const { toasts } = useToast();
 
-  const [workspace, setWorkspace] = useState<DocHandle<ZernoWorkspace> | null>(
-    null,
-  );
-  useEffect(() => {
-    service.workspaces
-      .find(workspaceId)
-      .then(setWorkspace)
-      .catch((err: Error) => sendToast("error", err.message));
-  }, [workspaceId]);
-
-  // TODO: Refactor with zerno-react:useDocuments
-  const [groups, setGroups] = useState<DocHandle<ZernoGroup>[]>([]);
-  useEffect(() => {
-    if (!workspace) return;
-    const setGroupsListener = (): void =>
-      void service.workspaces
-        .findGroups({ workspace: workspace.doc() })
-        .then(setGroups)
-        .catch((err: Error) => sendToast("error", err.message));
-    setGroupsListener();
-    workspace.on("change", setGroupsListener);
-    return (): void => void workspace.off("change", setGroupsListener);
-  }, [workspace]);
+  const [workspace] = useDocument<ZernoWorkspace>(workspaceId, {
+    suspense: true,
+  });
+  const [groups] = useDocuments<ZernoGroup>(workspace.groups);
 
   const boxes = ["command-input", "groups"] as const;
   const [selectedBox, setSelectedBox] = useState<(typeof boxes)[number]>(
@@ -64,14 +45,20 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
     trigger: selectedBox,
   });
 
-  const [selectedGroup, setSelectedGroup] = useState<number | undefined>();
+  const [selectedGroupId, setSelectedGroupId] = useState<
+    AutomergeUrl | undefined
+  >();
+  const groupIds = Array.from(groups.keys());
   useEffect(() => {
-    setSelectedGroup((i) => {
-      if (groups.length === 0) return undefined;
-      if (i === undefined || i >= groups.length) return groups.length - 1;
-      return i;
+    setSelectedGroupId((current) => {
+      if (groupIds.length === 0) return undefined;
+      if (current !== undefined && groups.has(current)) {
+        return current;
+      }
+      return groupIds[groupIds.length - 1];
     });
   }, [groups]);
+
   useInput((input, key) => {
     if (key.tab) {
       const direction = key.shift ? -1 : 1;
@@ -84,11 +71,12 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
 
     switch (selectedBox) {
       case "groups": {
-        if (groups.length === 0) return;
+        const i = selectedGroupId ? groupIds.indexOf(selectedGroupId) : 0;
+        if (groups.size === 0) return;
         if (key.upArrow) {
-          setSelectedGroup((i) => rotate(i ?? 0, groups.length, -1));
+          setSelectedGroupId(groupIds[rotate(i, groupIds.length, -1)]);
         } else if (key.downArrow) {
-          setSelectedGroup((i) => rotate(i ?? 0, groups.length, 1));
+          setSelectedGroupId(groupIds[rotate(i, groupIds.length, 1)]);
         }
         break;
       }
@@ -154,7 +142,7 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
           borderColor={selectedBox === "groups" ? selectedBoxColor : undefined}
         >
           <Text color="#00FFFF">Groups</Text>
-          <GroupList groups={groups} selectedGroup={selectedGroup} />
+          <GroupList groups={groups} selectedGroupId={selectedGroupId} />
         </Box>
         <Box
           flexGrow={1}
@@ -163,11 +151,7 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
           overflow="hidden"
         >
           <Text color="#00FFFF">Messages</Text>
-          <MessageList
-            service={service}
-            groupId={groups[selectedGroup!]?.url}
-            limit={terminal.rows}
-          />
+          <MessageList groupId={selectedGroupId} limit={terminal.rows} />
         </Box>
         <Box
           width="30%"
@@ -176,14 +160,13 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
           overflow="hidden"
         >
           <Text color="#00FFFF">Group</Text>
-          <Group service={service} group={groups[selectedGroup!]} />
+          <Group service={service} groupId={selectedGroupId} />
         </Box>
       </Box>
       <CommandInput
         service={service}
-        workspace={workspace}
-        groups={groups}
-        selectedGroup={selectedGroup}
+        workspaceId={workspaceId}
+        selectedGroupId={selectedGroupId}
         me={me}
         borderColor={
           selectedBox === "command-input" ? selectedBoxColor : undefined

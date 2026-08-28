@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box } from "ink";
 import TextInput from "ink-text-input";
 import clipboard from "clipboardy";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
+import type { AutomergeUrl, Doc, DocHandle } from "@automerge/automerge-repo";
 
 import {
   Access,
@@ -13,13 +13,38 @@ import {
 import type { Identity } from "zerno-core";
 
 import { useToast } from "../hooks/use-toast.js";
-import type { Service, ZernoWorkspace, ZernoGroup } from "../service/index.js";
+import type { Service, ZernoGroup, ZernoWorkspace } from "../service/index.js";
+import { useDocHandle, useDocument } from "zerno-react";
+import { Spinner } from "@inkjs/ui";
+
+// MARK: ArgumentParser
+
+function createArgumentParser<T>(value: string) {
+  const tokens = value.trim().split(/\s+/).filter(Boolean);
+
+  return {
+    value: value.trim(),
+    length: tokens.length,
+    next<T = string>(parser?: (value: string) => T): T {
+      const token = tokens.shift();
+      if (token === undefined) throw new Error("Not enough arguments");
+      return parser ? parser(token) : (token as unknown as T);
+    },
+    rest(): string {
+      const res = tokens.join(" ");
+      tokens.length = 0;
+      return res;
+    },
+  };
+}
+type ArgumentParser = ReturnType<typeof createArgumentParser>;
+
+// MARK: CommandInput
 
 export interface CommandInputProps {
   service: Service;
-  workspace: DocHandle<ZernoWorkspace>;
-  groups: DocHandle<ZernoGroup>[];
-  selectedGroup: number | undefined;
+  workspaceId: AutomergeUrl;
+  selectedGroupId: AutomergeUrl | undefined;
   me: Identity;
   borderColor: string | undefined;
   disabled: boolean;
@@ -27,206 +52,129 @@ export interface CommandInputProps {
 
 export function CommandInput({
   service,
-  workspace,
-  groups,
-  selectedGroup,
+  workspaceId,
+  selectedGroupId,
   me,
   disabled,
   borderColor,
 }: CommandInputProps): React.JSX.Element {
   const { sendToast } = useToast();
 
-  const [value, setValue] = useState("");
+  const workspace = useDocHandle<ZernoWorkspace>(workspaceId, {
+    suspense: true,
+  });
+  const selectedGroup = useDocHandle<ZernoGroup>(selectedGroupId);
 
+  const [value, setValue] = useState("");
   function onChange(value: string) {
     if (disabled) return;
     setValue(value);
   }
 
-  function newGroup(value: string): void {
-    const name = value.slice("/new".length).trim();
-    if (name.length === 0) {
-      sendToast("error", "Group name cannot be empty");
-      return;
-    }
-    service.workspaces
-      .createGroup({
-        workspaceId: workspace.url,
-        name,
-      })
-      .then((group) => sendToast("success", "Group successfully created"))
-      .catch((err: Error) => sendToast("error", err.message));
+  async function newGroup(args: ArgumentParser): Promise<void> {
+    const name = args.rest();
+    if (name.length === 0) throw new Error("Group name cannot be empty");
+
+    await service.workspaces.createGroup({ workspace, name });
+    sendToast("success", "Group successfully created");
   }
 
-  function openGroup(value: string): void {
-    const id = value.slice("/open".length).trim() as AutomergeUrl;
-    if (!id) {
-      sendToast("error", "Id cannot be empty");
-      return;
-    }
+  async function openGroup(args: ArgumentParser): Promise<void> {
+    const id = args.next() as AutomergeUrl;
+    if (!id) throw new Error("Id cannot be empty");
 
-    sendToast("info", "Opening group...");
+    sendToast("info", `Opening group '${id}'`);
+    const group = await service.groups.find(id);
 
-    service.groups
-      .find(id)
-      .then((group) => {
-        if (groups.some((g) => g.url === group.url)) {
-          sendToast("error", "Group already opened in your workspace");
-          return;
-        }
-        workspace.change((d) => d.groups.push(group.url));
-      })
-      .catch((err: Error) => sendToast("error", err.message));
+    await service.workspaces.openGroup({ workspace, group });
+    sendToast("success", "Group successfully opened");
   }
 
-  function closeGroup(value: string): void {
-    if (selectedGroup === undefined) {
-      sendToast("error", "Group is not selected");
-      return;
-    }
-    const group = groups[selectedGroup];
+  async function closeGroup(_: ArgumentParser): Promise<void> {
+    if (!selectedGroupId) throw new Error("Group is not selected");
 
-    service.workspaces
-      .closeGroup({
-        workspace,
-        groupId: group.url,
-      })
-      .then(() => sendToast("success", `Group '${group.url}' closed`));
+    await service.workspaces.closeGroup({
+      workspace,
+      groupId: selectedGroupId,
+    });
+
+    sendToast("success", "Group successfully closed");
   }
 
-  function copy(value: string): void {
-    const args = value.slice("/copy".length).trim().split(/\s+/, 1);
-
-    if (args.length !== 1) {
-      sendToast(
-        "error",
-        "Invalid arguments. Usage: /copy <contact-card/group-url>",
-      );
-      return;
-    }
-    switch (args[0]) {
+  async function copyContactCardOrGroupUrl(
+    args: ArgumentParser,
+  ): Promise<void> {
+    switch (args.next()) {
       case "contact-card": {
-        clipboard.writeSync(encodeContactCard(me.contactCard));
+        const text = encodeContactCard(me.contactCard);
+        clipboard.writeSync(text);
         sendToast("success", "Contact card copied to clipboard");
         break;
       }
       case "group-url": {
-        if (selectedGroup === undefined) {
-          sendToast("error", "Group is not selected");
-          return;
-        }
-        clipboard.writeSync(
-          groups[selectedGroup!].url.slice("automerge:".length),
-        );
+        if (!selectedGroupId) throw new Error("Group is not selected");
+        const text = selectedGroupId.slice("automerge:".length);
+        clipboard.writeSync(text);
         sendToast("success", "Group url copied to clipboard");
         break;
       }
       default: {
-        sendToast(
-          "error",
+        throw new Error(
           "Invalid arguments. Usage: /copy <contact-card/group-url>",
         );
-        break;
       }
     }
   }
 
-  function grantGroup(value: string): void {
-    if (selectedGroup === undefined) {
-      sendToast("error", "Group is not selected");
-      return;
-    }
-    const group = groups[selectedGroup];
+  async function grantGroup(args: ArgumentParser): Promise<void> {
+    if (!selectedGroup) throw new Error("Group is not selected");
 
-    const args = value.slice("/grant".length).trim().split(/\s+/, 2);
-    if (args.length !== 2) {
-      sendToast(
-        "error",
-        "Invalid arguments. Usage: /grant <access> <contact-card>",
-      );
-      return;
-    }
+    const access = args.next(Access.fromString);
+    const contactCard = args.next(decodeContactCard);
 
-    let access: Access;
-    try {
-      access = Access.fromString(args[0]);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      sendToast("error", message);
-      return;
-    }
-
-    let contactCard: ContactCard;
-    try {
-      contactCard = decodeContactCard(args[1]);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      sendToast("error", message);
-      return;
-    }
-
-    service.workspaces
-      .grantGroup({
-        group,
-        contactCard,
-        access,
-      })
-      .then(() =>
-        sendToast(
-          "success",
-          "Contact card added to phonebook and access granted",
-        ),
-      )
-      .catch((err: Error) => sendToast("error", err.message));
+    await service.workspaces.grantGroup({
+      group: selectedGroup,
+      contactCard,
+      access,
+    });
+    sendToast("success", "Contact card added to phonebook and access granted");
   }
 
-  function sendMessage(value: string): void {
-    if (selectedGroup === undefined) {
-      sendToast("error", "Group is not selected");
-      return;
-    }
-    const group = groups[selectedGroup];
+  async function sendMessage(args: ArgumentParser): Promise<void> {
+    if (!selectedGroup) throw new Error("Group is not selected");
+    if (args.value.length === 0) throw new Error("Message cannot be empty");
 
-    value = value.trim();
-
-    if (value.length === 0) {
-      sendToast("error", "Message cannot be empty");
-      return;
-    }
-
-    service.groups
-      .sendMessage({
-        group,
-        content: value,
-      })
-      .catch((err: Error) => sendToast("error", err.message));
+    await service.groups.sendMessage({
+      group: selectedGroup,
+      content: args.value,
+    });
   }
 
-  const commands: Record<string, (value: string) => void> = {
+  const commands: Record<string, (value: ArgumentParser) => Promise<void>> = {
     "/new": newGroup,
     "/open": openGroup,
     "/close": closeGroup,
-    "/copy": copy,
+    "/copy": copyContactCardOrGroupUrl,
     "/grant": grantGroup,
   };
 
   function onSubmit(value: string): void {
     value = value.trim();
-    const command = value.split(/\s+/)[0];
-
     onChange("");
 
-    if (!command.startsWith("/")) {
-      sendMessage(value);
+    const args = createArgumentParser(value);
+
+    if (!args.value.startsWith("/")) {
+      sendMessage(args).catch((err: Error) => sendToast("error", err));
       return;
     }
 
-    const handler = commands[command];
+    const handler = commands[args.next()];
     if (!handler) {
       sendToast("error", "Invalid command");
       return;
     }
-    handler(value);
+    handler(args).catch((err: Error) => sendToast("error", err));
     return;
   }
 

@@ -4,8 +4,6 @@ import { Access } from "zerno-core";
 import type { ContactCard, Zerno } from "zerno-core";
 
 import type { ZernoGroup } from "./groups.js";
-import type { QueryOption } from "./query-option.js";
-import { applyQueryOption } from "./query-option.js";
 import type { PhonebookService } from "./phonebook.js";
 
 export interface ZernoWorkspace {
@@ -19,29 +17,32 @@ export class WorkspaceService {
     private readonly phonebooks: PhonebookService,
   ) {}
 
+  async openGroup(args: {
+    workspace: DocHandle<ZernoWorkspace>;
+    group: DocHandle<ZernoGroup>;
+  }): Promise<void> {
+    if (args.workspace.doc().groups.some((g) => g === args.group.url)) {
+      throw new Error("Group already opened in your workspace");
+    }
+    args.workspace.change((d) => d.groups.push(args.group.url));
+  }
+
   async create(): Promise<DocHandle<ZernoWorkspace>> {
     return await this.zerno.documents.create<ZernoWorkspace>({
       groups: [],
     });
   }
 
-  async find(id: AutomergeUrl): Promise<DocHandle<ZernoWorkspace>> {
-    // TODO: Specify 'AbortOptions'
-    return await this.zerno.documents.find<ZernoWorkspace>(id);
-  }
-
-  async findGroups(args: {
-    workspace: ZernoWorkspace;
-    option?: QueryOption;
-  }): Promise<DocHandle<ZernoGroup>[]> {
-    const groups = applyQueryOption(args.workspace.groups, args.option);
-    return Promise.all(
-      groups.map((id) => this.zerno.documents.find<ZernoGroup>(id)),
-    );
+  async find(
+    id: AutomergeUrl,
+    timeout: number = 60_000 /* ms */,
+  ): Promise<DocHandle<ZernoWorkspace>> {
+    const signal = AbortSignal.timeout(timeout);
+    return await this.zerno.documents.find<ZernoWorkspace>(id, { signal });
   }
 
   async createGroup(args: {
-    workspaceId: AutomergeUrl;
+    workspace: DocHandle<ZernoWorkspace>;
     name: string;
   }): Promise<DocHandle<ZernoGroup>> {
     // Create phonebook
@@ -62,8 +63,7 @@ export class WorkspaceService {
     });
 
     // Add the group to the workspace
-    const workspace = await this.find(args.workspaceId);
-    workspace.change((d) => d.groups.push(group.url));
+    args.workspace.change((d) => d.groups.push(group.url));
 
     return group;
   }
