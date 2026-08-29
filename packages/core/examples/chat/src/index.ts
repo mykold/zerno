@@ -6,8 +6,8 @@ import type { AutomergeUrl, PeerId } from "@automerge/automerge-repo";
 import { NodeFSStorageAdapter } from "@automerge/automerge-repo-storage-nodefs";
 import { initializeAutomergeRepoKeyhive } from "@automerge/automerge-repo-keyhive";
 import type { SyncServerIdentity } from "@automerge/automerge-repo-keyhive";
-
 import { Zerno } from "zerno-core";
+
 import {
   Service,
   WorkspaceService,

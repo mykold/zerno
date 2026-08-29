@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
+  useRepo,
   useDocument as automergeUseDocument,
   useDocuments as automergeUseDocuments,
   useDocHandle as automergeUseDocHandle,
   useDocHandles as automergeUseDocHandles,
-  useRepo,
-  type AnyDocumentId,
-  type UseDocumentSynchronousParams,
-  type UseDocumentsOptions,
+} from "@automerge/react/slim";
+import type {
+  AnyDocumentId,
+  UseDocumentSynchronousParams,
+  UseDocumentsOptions,
 } from "@automerge/react/slim";
 import type { ChangeFn, ChangeOptions, Doc } from "@automerge/automerge/slim";
 import type { DocHandle } from "@automerge/automerge-repo/slim";

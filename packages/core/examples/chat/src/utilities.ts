@@ -1,5 +1,4 @@
 import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
-import type { DocHandle } from "zerno-react";
 
 export function rotate(index: number, length: number, direction: -1 | 1) {
   return (index + direction + length) % length;

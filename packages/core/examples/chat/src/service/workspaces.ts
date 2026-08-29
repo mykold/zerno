@@ -1,5 +1,4 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
-
 import { Access } from "zerno-core";
 import type { ContactCard, Zerno } from "zerno-core";
 

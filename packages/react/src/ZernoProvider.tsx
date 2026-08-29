@@ -1,6 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { RepoContext } from "@automerge/react/slim";
-
 import type { Zerno } from "zerno-core";
 
 export interface ZernoProviderProps {

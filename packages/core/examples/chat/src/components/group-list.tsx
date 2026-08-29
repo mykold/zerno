@@ -1,9 +1,9 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
+import type { DocMap } from "@automerge/react";
 
 import type { ZernoGroup } from "../service/index.js";
-import type { DocMap } from "@automerge/react";
 
 export interface GroupListProps {
   groups: DocMap<ZernoGroup>;

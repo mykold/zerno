@@ -10,18 +10,17 @@ import type {
 } from "@automerge/automerge-repo";
 import { NodeFSStorageAdapter } from "@automerge/automerge-repo-storage-nodefs";
 import {
-  ContactCard,
   initializeAutomergeRepoKeyhive,
   uint8ArrayToHex,
 } from "@automerge/automerge-repo-keyhive";
 import type { SyncServerSelection } from "@automerge/automerge-repo-keyhive";
-
 import {
   encodeContactCard,
   decodeContactCard,
   Access,
   Zerno,
 } from "zerno-core";
+
 import { colorize, colors } from "./colorize.js";
 
 const ZERNO_DIR = process.env.ZERNO_DIR ?? ".zerno";
@@ -257,7 +256,9 @@ interface ZernoDocument {
 
             console.log(
               colorize(
-                `INFO: Access granted to user '${uint8ArrayToHex(decodedContactCard.id.toBytes())}'`,
+                `INFO: Access granted to user '${uint8ArrayToHex(
+                  decodedContactCard.id.toBytes(),
+                )}'`,
               ),
             );
             break;

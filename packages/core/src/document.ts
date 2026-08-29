@@ -1,10 +1,10 @@
-import {
-  interpretAsDocumentId,
-  type AbortOptions,
-  type AutomergeUrl,
-  type DocHandle,
-  type Repo,
-  type RepoFindOptions,
+import { interpretAsDocumentId } from "@automerge/automerge-repo";
+import type {
+  AbortOptions,
+  AutomergeUrl,
+  DocHandle,
+  Repo,
+  RepoFindOptions,
 } from "@automerge/automerge-repo";
 import type { AutomergeRepoKeyhive } from "@automerge/automerge-repo-keyhive";
 
@@ -37,7 +37,7 @@ export class DocumentService {
 
   /**
    * Finds a document, retrying while it is unavailable (see
-   * `RepoFindOptions.unavailableRetryMs`).
+   * {@link RepoFindOptions.unavailableRetryMs}).
    */
   async find<T>(
     id: AutomergeUrl,
