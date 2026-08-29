@@ -1,6 +1,12 @@
+allowBuilds:
+  cbor-extract: false
+  esbuild: false
+engineStrict: true
+
 packages:
   - "packages/*"
   - "packages/core/examples/*"
+
 patchedDependencies:
   '@automerge/automerge-repo': patches/@automerge__automerge-repo.patch
   '@automerge/automerge-repo-keyhive': patches/@automerge__automerge-repo-keyhive.patch

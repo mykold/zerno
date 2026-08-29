@@ -6,9 +6,15 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck"
   },
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@12.1.0",
   "engines": {
-    "node": ">=22",
-    "pnpm": ">=10"
+    "node": ">=22"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "22.22.2",
+      "onFail": "download"
+    }
   }
 }
