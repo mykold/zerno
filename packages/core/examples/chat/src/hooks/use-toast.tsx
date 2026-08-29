@@ -19,7 +19,7 @@ export interface ToastProps {
   expiresAt: number;
 }
 
-interface ToastContextValue {
+export interface ToastContextValue {
   toasts: ToastProps[];
   sendToast(
     variant: ToastVariant,

@@ -1,21 +1,15 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Box } from "ink";
 import TextInput from "ink-text-input";
 import clipboard from "clipboardy";
-import type { AutomergeUrl, Doc, DocHandle } from "@automerge/automerge-repo";
-
-import {
-  Access,
-  ContactCard,
-  decodeContactCard,
-  encodeContactCard,
-} from "zerno-core";
+import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
+import { Access, decodeContactCard, encodeContactCard } from "zerno-core";
 import type { Identity } from "zerno-core";
+import { useDocHandle } from "zerno-react";
 
 import { useToast } from "../hooks/use-toast.js";
+import type { ToastContextValue } from "../hooks/use-toast.js";
 import type { Service, ZernoGroup, ZernoWorkspace } from "../service/index.js";
-import { useDocHandle, useDocument } from "zerno-react";
-import { Spinner } from "@inkjs/ui";
 
 // MARK: ArgumentParser
 
@@ -45,32 +39,23 @@ export interface CommandInputProps {
   service: Service;
   workspaceId: AutomergeUrl;
   selectedGroupId: AutomergeUrl | undefined;
-  me: Identity;
   borderColor: string | undefined;
   disabled: boolean;
 }
 
-export function CommandInput({
+interface CreateCommandsProps {
+  service: Service;
+  workspace: DocHandle<ZernoWorkspace>;
+  selectedGroup: DocHandle<ZernoGroup> | undefined;
+  sendToast: ToastContextValue["sendToast"];
+}
+
+function createCommands({
   service,
-  workspaceId,
-  selectedGroupId,
-  me,
-  disabled,
-  borderColor,
-}: CommandInputProps): React.JSX.Element {
-  const { sendToast } = useToast();
-
-  const workspace = useDocHandle<ZernoWorkspace>(workspaceId, {
-    suspense: true,
-  });
-  const selectedGroup = useDocHandle<ZernoGroup>(selectedGroupId);
-
-  const [value, setValue] = useState("");
-  function onChange(value: string) {
-    if (disabled) return;
-    setValue(value);
-  }
-
+  workspace,
+  selectedGroup,
+  sendToast,
+}: CreateCommandsProps) {
   async function newGroup(args: ArgumentParser): Promise<void> {
     const name = args.rest();
     if (name.length === 0) throw new Error("Group name cannot be empty");
@@ -91,11 +76,11 @@ export function CommandInput({
   }
 
   async function closeGroup(_: ArgumentParser): Promise<void> {
-    if (!selectedGroupId) throw new Error("Group is not selected");
+    if (!selectedGroup) throw new Error("Group is not selected");
 
     await service.workspaces.closeGroup({
       workspace,
-      groupId: selectedGroupId,
+      groupId: selectedGroup.url,
     });
 
     sendToast("success", "Group successfully closed");
@@ -106,14 +91,14 @@ export function CommandInput({
   ): Promise<void> {
     switch (args.next()) {
       case "contact-card": {
-        const text = encodeContactCard(me.contactCard);
+        const text = encodeContactCard(service.zerno.identity.me().contactCard);
         clipboard.writeSync(text);
         sendToast("success", "Contact card copied to clipboard");
         break;
       }
       case "group-url": {
-        if (!selectedGroupId) throw new Error("Group is not selected");
-        const text = selectedGroupId.slice("automerge:".length);
+        if (!selectedGroup) throw new Error("Group is not selected");
+        const text = selectedGroup.url.slice("automerge:".length);
         clipboard.writeSync(text);
         sendToast("success", "Group url copied to clipboard");
         break;
@@ -150,13 +135,46 @@ export function CommandInput({
     });
   }
 
-  const commands: Record<string, (value: ArgumentParser) => Promise<void>> = {
-    "/new": newGroup,
-    "/open": openGroup,
-    "/close": closeGroup,
-    "/copy": copyContactCardOrGroupUrl,
-    "/grant": grantGroup,
+  return {
+    newGroup,
+    openGroup,
+    closeGroup,
+    copyContactCardOrGroupUrl,
+    grantGroup,
+    sendMessage,
   };
+}
+
+export function CommandInput({
+  service,
+  workspaceId,
+  selectedGroupId,
+  disabled,
+  borderColor,
+}: CommandInputProps): React.JSX.Element {
+  const { sendToast } = useToast();
+
+  const workspace = useDocHandle<ZernoWorkspace>(workspaceId, {
+    suspense: true,
+  });
+  const selectedGroup = useDocHandle<ZernoGroup>(selectedGroupId);
+
+  const commands = useMemo(
+    () =>
+      createCommands({
+        service,
+        workspace,
+        selectedGroup,
+        sendToast,
+      }),
+    [service, workspace, selectedGroup, sendToast],
+  );
+
+  const [value, setValue] = useState("");
+  function onChange(value: string) {
+    if (disabled) return;
+    setValue(value);
+  }
 
   function onSubmit(value: string): void {
     value = value.trim();
@@ -165,11 +183,17 @@ export function CommandInput({
     const args = createArgumentParser(value);
 
     if (!args.value.startsWith("/")) {
-      sendMessage(args).catch((err: Error) => sendToast("error", err));
+      commands.sendMessage(args).catch((err: Error) => sendToast("error", err));
       return;
     }
 
-    const handler = commands[args.next()];
+    const handler = {
+      "/new": commands.newGroup,
+      "/open": commands.openGroup,
+      "/close": commands.closeGroup,
+      "/copy": commands.copyContactCardOrGroupUrl,
+      "/grant": commands.grantGroup,
+    }[args.next()];
     if (!handler) {
       sendToast("error", "Invalid command");
       return;
