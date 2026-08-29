@@ -1,8 +1,7 @@
-import { Access, uint8ArrayToHex } from "@automerge/automerge-repo-keyhive";
+import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive";
 import { Identifier } from "@automerge/automerge-repo-keyhive";
 import { ContactCard } from "@automerge/automerge-repo-keyhive";
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
-
 import { Zerno } from "zerno-core";
 
 import type { GroupService } from "./groups.js";
@@ -26,14 +25,7 @@ export class PhonebookService {
   }
 
   async create(): Promise<DocHandle<ZernoPhonebook>> {
-    const handle = await this.zerno.documents.create<ZernoPhonebook>({});
-
-    /** TODO: Maybe should be moved outside? See {@link GroupService.grantGroup} */
-    await this.zerno.access.grantPublicAccess({
-      id: handle.url,
-      access: Access.read(),
-    });
-    return handle;
+    return await this.zerno.documents.create<ZernoPhonebook>({});
   }
 
   /** Returns the contact card for the given identifier. Returns undefined if not found */
