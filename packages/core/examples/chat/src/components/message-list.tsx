@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-
 import { useDocument, useDocuments } from "zerno-react";
 
 import type {
@@ -9,9 +8,8 @@ import type {
   ZernoMessageList,
   ZernoGroup,
 } from "../service/index.js";
-import { applyQueryOption } from "../service/index.js";
 import { identifierColor, shrinkIdentifier } from "../utilities.js";
-import { useToast } from "../hooks/use-toast.js";
+import { useMessages } from "../hooks/use-messages.js";
 
 function formatRelativeTime(createdAt: number) {
   const seconds = Math.floor((Date.now() - createdAt) / 1000);
@@ -48,6 +46,8 @@ export function MessageItem({ author, item }: MessageItemProps) {
 
 export interface MessageListProps {
   groupId: AutomergeUrl | undefined;
+  // TODO: Should we have `limit`? Anyway `useMessages` hook computes every message
+  // and `limit` param only limites visually
   limit: number;
 }
 
@@ -66,21 +66,10 @@ export function MessageList({
     suspense: false,
   });
 
-  // TODO: The speed will depend heavily on the number of messages;
-  // we need to come up with a smart mechanism that will retrieve
-  // only the most recent X messages.
-  const messages = useMemo(() => {
-    const messages: ZernoMessage[] = [];
-    for (const doc of messageLists.values()) {
-      if (!doc) continue;
-      messages.push(...doc.messages);
-    }
-    messages.sort((a, b) => a.createdAt - b.createdAt);
-    return applyQueryOption(messages, {
-      limit,
-      offset: Math.max(0, messages.length - limit),
-    });
-  }, [messageLists, limit]);
+  const messages = useMessages(messageLists, {
+    limit,
+    order: "desc",
+  });
 
   if (!group) {
     return (
