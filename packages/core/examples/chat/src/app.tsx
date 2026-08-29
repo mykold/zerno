@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { render as inkRender, Box, Text, useInput, useWindowSize } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-
 import { encodeContactCard } from "zerno-core";
 import { useDocument, useDocuments, ZernoProvider } from "zerno-react";
 
@@ -22,8 +21,6 @@ export interface AppProps {
   workspaceId: AutomergeUrl;
 }
 
-const app = { columns: 60, rows: 12 };
-
 export function App({ service, workspaceId }: AppProps): React.JSX.Element {
   const terminal = useWindowSize();
   const { toasts } = useToast();
@@ -31,16 +28,17 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
   const [workspace] = useDocument<ZernoWorkspace>(workspaceId, {
     suspense: true,
   });
-  const [groups] = useDocuments<ZernoGroup>(workspace.groups);
+  const [groups] = useDocuments<ZernoGroup>(workspace.groups, {
+    suspense: false,
+  });
 
   const boxes = ["command-input", "groups"] as const;
   const [selectedBox, setSelectedBox] = useState<(typeof boxes)[number]>(
     boxes[0],
   );
 
-  const selectedBoxColors = ["#747474", "#CCCCCC"] as const;
   const selectedBoxColor = useRing({
-    values: selectedBoxColors,
+    values: ["#747474", "#CCCCCC"] as const,
     interval: 500,
     trigger: selectedBox,
   });
@@ -89,13 +87,9 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
 
   const [me] = useState(() => service.zerno.identity.me());
 
-  if (terminal.columns < app.columns || terminal.rows < app.rows) {
-    return (
-      <Text>
-        Minimum terminal size is {app.columns}x{app.rows}.
-      </Text>
-    );
-  }
+  if (terminal.columns < 60 || terminal.rows < 20)
+    return <Text>Minimum terminal size is 60x20.</Text>;
+
   if (!workspace) {
     if (toasts.length !== 0) {
       return (
@@ -160,14 +154,13 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
           overflow="hidden"
         >
           <Text color="#00FFFF">Group</Text>
-          <Group service={service} groupId={selectedGroupId} />
+          <Group groupId={selectedGroupId} />
         </Box>
       </Box>
       <CommandInput
         service={service}
         workspaceId={workspaceId}
         selectedGroupId={selectedGroupId}
-        me={me}
         borderColor={
           selectedBox === "command-input" ? selectedBoxColor : undefined
         }
