@@ -4,6 +4,8 @@ import { Access } from "zerno-core";
 import type { DocMember } from "zerno-core";
 import { useZerno } from "zerno-react";
 
+const MEMBERS_REFRESH_DEBOUNCE_MS = 300;
+
 export function useMembers(groupId?: AutomergeUrl): DocMember[] | undefined {
   const zerno = useZerno();
 
@@ -15,8 +17,9 @@ export function useMembers(groupId?: AutomergeUrl): DocMember[] | undefined {
       return;
     }
     let isMounted = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     setMembers(undefined);
-    const setMembersWithAccessListener = () => {
+    const fetchMembers = (): void => {
       zerno.access
         .membersWithAccess({ id: groupId, access: Access.read() })
         .then((result) => {
@@ -27,11 +30,20 @@ export function useMembers(groupId?: AutomergeUrl): DocMember[] | undefined {
           if (isMounted) setMembers([]);
         });
     };
-    setMembersWithAccessListener();
-    zerno.hive.emitter.on("update", setMembersWithAccessListener);
+    // Hive emits `update` on every applied event, often in bursts; refetch
+    // only after the burst goes quiet instead of once per event.
+    const onUpdateListener = (): void => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (isMounted) fetchMembers();
+      }, MEMBERS_REFRESH_DEBOUNCE_MS);
+    };
+    fetchMembers();
+    zerno.hive.emitter.on("update", onUpdateListener);
     return () => {
       isMounted = false;
-      zerno.hive.emitter.off("update", setMembersWithAccessListener);
+      clearTimeout(timer);
+      zerno.hive.emitter.off("update", onUpdateListener);
     };
   }, [zerno, groupId]);
 

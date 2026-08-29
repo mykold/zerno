@@ -1,36 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Box, Text } from "ink";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
-
-import { Access } from "zerno-core";
-import type { DocMember } from "zerno-core";
-
-import { useToast } from "../hooks/use-toast.js";
-import type { Service, ZernoGroup } from "../service/index.js";
-import { shrinkIdentifier, identifierColor } from "../utilities.js";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "zerno-react";
 
+import { useMembers } from "../hooks/use-members.js";
+import type { ZernoGroup } from "../service/index.js";
+import { shrinkIdentifier, identifierColor } from "../utilities.js";
+
 export interface GroupProps {
-  service: Service;
   groupId: AutomergeUrl | undefined;
 }
 
-export function Group({ service, groupId }: GroupProps): React.JSX.Element {
-  const { sendToast } = useToast();
-
+export function Group({ groupId }: GroupProps): React.JSX.Element {
   const [group] = useDocument<ZernoGroup>(groupId);
-
-  // TODO: Use `use-members.ts`
-  const [members, setMembers] = useState<DocMember[]>([]);
-  useEffect(() => {
-    if (!groupId) return;
-    const setMembersListener = (): void =>
-      void service.zerno.access
-        .membersWithAccess({ id: groupId, access: Access.read() })
-        .then(setMembers)
-        .catch((err: Error) => sendToast("error", err.message));
-    setMembersListener();
-  }, [service, groupId, group]);
+  const members = useMembers(groupId) ?? [];
 
   if (!groupId) {
     return (
