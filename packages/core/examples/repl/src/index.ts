@@ -28,7 +28,7 @@ const ZERNO_STORAGE = `${ZERNO_DIR}/storage`;
 const ZERNO_DOCUMENT_URL = `${ZERNO_DIR}/document-url`;
 const ZERNO_PEER_ID = `${ZERNO_DIR}/peer-id`;
 // NOTE: This file contains the Subduction server identity and connection endpoints.
-// Generate `syncServer` using `pnpm scripts:get-sync-server-selection` with the
+// Generate `syncServer` using `pnpm scripts:get-sync-server-selection > sync-server.json` with the
 // Subduction server's private key when using a custom server.
 const SYNC_SERVER_FILE = "./sync-server.json";
 

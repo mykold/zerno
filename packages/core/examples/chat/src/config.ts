@@ -17,7 +17,7 @@ export const CONFIG = {
   },
 
   // NOTE: This file contains the Subduction server identity and connection endpoints.
-  // Generate `syncServer` using `pnpm scripts:get-sync-server-selection` with the
+  // Generate `syncServer` using `pnpm scripts:get-sync-server-selection > sync-server.json` with the
   // Subduction server's private key when using a custom server.
   SYNC_SERVER_FILE: "./sync-server.json",
 } as const;

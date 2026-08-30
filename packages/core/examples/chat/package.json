@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsc --noEmit --watch",
     "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "scripts:get-sync-server-selection": "tsx scripts/get-sync-server-selection.ts"
   },
   "dependencies": {
     "@automerge/automerge-repo": "catalog:",
