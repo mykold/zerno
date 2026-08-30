@@ -1,9 +1,8 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { useDocument } from "zerno-react";
+import { useDocument, useMembers } from "zerno-react";
 
-import { useMembers } from "../hooks/use-members.js";
 import type { ZernoGroup } from "../service/index.js";
 import { shrinkIdentifier, identifierColor } from "../utilities.js";
 
