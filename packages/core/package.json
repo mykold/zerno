@@ -19,13 +19,13 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "peerDependencies": {
-    "@automerge/automerge-repo": "2.6.0-subduction.48",
-    "@automerge/automerge-repo-keyhive": "0.5.0-alpha.6"
+    "@automerge/automerge-repo": "catalog:",
+    "@automerge/automerge-repo-keyhive": "catalog:"
   },
   "devDependencies": {
-    "@automerge/automerge-repo": "2.6.0-subduction.48",
-    "@automerge/automerge-repo-keyhive": "0.5.0-alpha.6",
-    "@types/node": "^26.1.2",
+    "@automerge/automerge-repo": "catalog:",
+    "@automerge/automerge-repo-keyhive": "catalog:",
+    "@types/node": "^26.4.0",
     "typescript": "^5.9.2"
   }
 }
