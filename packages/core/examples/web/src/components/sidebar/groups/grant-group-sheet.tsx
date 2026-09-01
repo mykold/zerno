@@ -124,7 +124,7 @@ export function GrantGroupSheet({ url, open, setOpen }: GrantGroupSheetProps) {
                   <Input
                     value={contactCard}
                     onChange={(e) => setContactCard(e.target.value)}
-                    placeholder="eyJBZGQiOnsicGF5bG9hZCI6eyJzaGFyZV9rZXkiOls1MiwzLDM..."
+                    placeholder="AAAAU3siQWRkIjp7InBheWxvYWQiOnsic2hhcmVfa2V5IjpbMSwzMiwwXX0sImlzc3VlciI6WzEsMzIsMzJdLCJzaWduYXR1cmUiOlsxLDY0LDY0XX19NAMDb5S53gMoTXKX..."
                   />
                 </div>
               </TabsContent>
