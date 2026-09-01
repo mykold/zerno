@@ -1,5 +1,5 @@
 diff --git a/dist/Repo.d.ts b/dist/Repo.d.ts
-index 15d4ca65aa613fb567335f09c8fcb8cb9c4a954a..d6b00fd4fc48b34395c83baee1db1df07357d52f 100644
+index 15d4ca65aa613fb567335f09c8fcb8cb9c4a954a..7f326410c8cd1584b692fcaafcd566acb44a3308 100644
 --- a/dist/Repo.d.ts
 +++ b/dist/Repo.d.ts
 @@ -320,6 +320,17 @@ export type RepoFindOptions = {
@@ -21,7 +21,7 @@ index 15d4ca65aa613fb567335f09c8fcb8cb9c4a954a..d6b00fd4fc48b34395c83baee1db1df0
  export type { SyncInfo } from "./DocHandle.js";
  export type DeleteDocumentPayload = {
 diff --git a/dist/Repo.js b/dist/Repo.js
-index adfddd9b3926510604274217c42f97f104e119a3..ee0836ab456693cbdeef23d084850205cb58bed9 100644
+index adfddd9b3926510604274217c42f97f104e119a3..b6023065188f66739f4ecd3837b7a8b34dad82ef 100644
 --- a/dist/Repo.js
 +++ b/dist/Repo.js
 @@ -22,6 +22,13 @@ import { hasAtLeastOneKey } from "./helpers/has-at-least-one-key.js";
@@ -90,10 +90,34 @@ index adfddd9b3926510604274217c42f97f104e119a3..ee0836ab456693cbdeef23d084850205
      /**
       * @deprecated Alias for {@link Repo.find}. Will be removed in the next major release
 diff --git a/dist/subduction/source.js b/dist/subduction/source.js
-index 4692619444edfae0ef5f111cef6ce29499507afa..476618b6ecab0cab9aacae50d7ed7705684d68d8 100644
+index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e32928bc2 100644
 --- a/dist/subduction/source.js
 +++ b/dist/subduction/source.js
-@@ -457,7 +457,23 @@ export class SubductionSource {
+@@ -3,6 +3,7 @@ import { BlobMeta, CommitId, CommitInput, Fragment, FragmentInput, LooseCommit,
+ import { toSedimentreeId, toDocumentId } from "./helpers.js";
+ import { encodeHeads } from "../AutomergeUrl.js";
+ import { mergeArrays } from "../helpers/mergeArrays.js";
++import { pause } from "../helpers/pause.js";
+ import { semaphore } from "../helpers/semaphore.js";
+ import { throttle } from "../helpers/throttle.js";
+ import { makeYielder, yieldToMacrotask } from "../helpers/yield.js";
+@@ -41,6 +42,15 @@ const SHUTDOWN_IDLE_TIMEOUT_MS = 5_000;
+  * `RepoConfig.subductionCompactionDeleteConcurrency`.
+  */
+ const DEFAULT_COMPACTION_DELETE_CONCURRENCY = 16;
++/** Delay before the first repeat of a failed blob-transform pass. */
++const TRANSFORM_RETRY_BASE_DELAY_MS = 1_000;
++/** Cap for the growing blob-transform retry delay. */
++const TRANSFORM_RETRY_MAX_DELAY_MS = 30_000;
++/**
++ * Total time a single blob-transform retry cycle may spend before giving
++ * up (and logging a warning). A later blob landing re-arms the cycle.
++ */
++const TRANSFORM_RETRY_BUDGET_MS = 10 * 60_000;
+ export class SubductionSource {
+     #subduction;
+     #storage;
+@@ -457,7 +467,23 @@ export class SubductionSource {
          })();
          this.#scheduleRecompute(this.#entries.get(sidStr));
      }
@@ -118,7 +142,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..476618b6ecab0cab9aacae50d7ed7705
      shareConfigChanged() {
          for (const entry of this.#entries.values()) {
              // A share-config change can flip a previously-denied fetch to
-@@ -480,7 +496,7 @@ export class SubductionSource {
+@@ -480,7 +506,7 @@ export class SubductionSource {
              // now make them transformable, so re-transform locally. Defer the local
              // re-transform during an in-flight sync to avoid racing with its handle
              // update.
@@ -127,7 +151,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..476618b6ecab0cab9aacae50d7ed7705
                  const empty = Automerge.getHeads(entry.handle.fullDoc()).length === 0;
                  if (entry.syncInFlight) {
                      entry.retryTransformAfterSync = true;
-@@ -625,6 +641,15 @@ export class SubductionSource {
+@@ -625,6 +651,15 @@ export class SubductionSource {
                          entry.syncInFlight = true;
                          void this.#doSync(entry);
                      }
@@ -143,7 +167,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..476618b6ecab0cab9aacae50d7ed7705
                      else if (Automerge.getHeads(entry.handle.fullDoc()).length === 0 &&
                          !this.#anyConnectionManagerConnecting()) {
                          // All connections settled and sync failed — give up.
-@@ -662,7 +687,28 @@ export class SubductionSource {
+@@ -662,7 +697,28 @@ export class SubductionSource {
              entry.flushSave.flush();
              await entry.saveSettled;
              this.#log.debug(`doSync ${sid} (state=${entry.syncState})`);
@@ -173,16 +197,65 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..476618b6ecab0cab9aacae50d7ed7705
              const results = peerResultMap.entries();
              const anySuccess = results.some(r => r.success);
              this.#log.debug(`doSync ${sid}: ${results.length} peer(s), success=${anySuccess}`);
-@@ -903,7 +949,7 @@ export class SubductionSource {
+@@ -894,6 +950,17 @@ export class SubductionSource {
+     /**
+      * Debounced re-run of the bulk blob transform after a content blob that
+      * could not be transformed landed.
++     *
++     * Repeats with a growing delay while the entry still holds blobs that
++     * failed to transform. A blob can be undecryptable for a while for
++     * reasons that resolve later (e.g. the keyhive document materializes only
++     * after its delegation ops finish syncing, or CGKA keys arrive late), and
++     * the event-driven retries (shareConfigChanged) alone are not guaranteed
++     * to land after that happens — so keep re-trying locally until the flag
++     * clears. The delay doubles per attempt and is capped, and the whole
++     * cycle gives up after {@link TRANSFORM_RETRY_BUDGET_MS} so a
++     * genuinely undecryptable doc does not churn forever. A later blob
++     * landing re-arms the cycle from scratch.
+      */
+     #scheduleTransformRetry(entry) {
+         if (this.#shuttingDown || entry.transformRetryScheduled)
+@@ -902,13 +969,35 @@ export class SubductionSource {
+         void (async () => {
              try {
                  await yieldToMacrotask();
-                 entry.transformRetryScheduled = false;
+-                entry.transformRetryScheduled = false;
 -                if (entry.hasUntransformedBlobs && entry.syncState === "running") {
-+                if (entry.hasUntransformedBlobs) {
++                let delayMs = TRANSFORM_RETRY_BASE_DELAY_MS;
++                const startedAt = Date.now();
++                for (;;) {
++                    if (this.#shuttingDown)
++                        return;
++                    // The entry may have been detached and re-created while we
++                    // waited (a fresh find evicts the dead query); stop here —
++                    // the replacement entry runs its own retry cycle.
++                    if (this.#entries.get(entry.sedimentreeId.toString()) !== entry)
++                        return;
++                    if (!entry.hasUntransformedBlobs)
++                        return;
                      await this.#reloadBlobs(entry);
++                    if (!entry.hasUntransformedBlobs)
++                        return;
++                    const elapsedMs = Date.now() - startedAt;
++                    if (elapsedMs >= TRANSFORM_RETRY_BUDGET_MS) {
++                        this.#log.warn(`transform retry budget exhausted for ${entry.sedimentreeId
++                            .toString()
++                            .slice(0, 8)} after ${Math.round(elapsedMs / 1000)}s; ` +
++                            `${entry.untransformedHashes.size} blob(s) remain undecrypted until a reload or their keys arrive`);
++                        return;
++                    }
++                    await pause(Math.min(delayMs, TRANSFORM_RETRY_MAX_DELAY_MS, TRANSFORM_RETRY_BUDGET_MS - elapsedMs));
++                    delayMs *= 2;
                  }
              }
-@@ -1321,6 +1367,34 @@ export class SubductionSource {
+-            catch (e) {
+-                this.#log.debug("transform retry failed: %O", e);
++            finally {
++                entry.transformRetryScheduled = false;
+             }
+         })();
+     }
+@@ -1321,6 +1410,34 @@ export class SubductionSource {
              return;
          this.#scheduler.resetHealState(sid);
          entry.lastSyncResult = null;
@@ -218,7 +291,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..476618b6ecab0cab9aacae50d7ed7705
      }
      // ── Flush ───────────────────────────────────────────────────────────
 diff --git a/dist/subduction/storage.js b/dist/subduction/storage.js
-index 37f9cc727f7ab1d24118879efadc4bb44f90e827..1d7e3155251cc04acdceec48c5633680391b8074 100644
+index 37f9cc727f7ab1d24118879efadc4bb44f90e827..6e857322922cef8d37662afdaeb039c8844fd8d7 100644
 --- a/dist/subduction/storage.js
 +++ b/dist/subduction/storage.js
 @@ -228,19 +228,47 @@ export class SubductionStorageBridge {
@@ -284,7 +357,7 @@ index 37f9cc727f7ab1d24118879efadc4bb44f90e827..1d7e3155251cc04acdceec48c5633680
                  if (this.listeners["commit-saved"]?.length) {
                      commits.forEach(({ commitId }, i) => {
 diff --git a/src/subduction/storage.ts b/src/subduction/storage.ts
-index bda00635ccb518d9ab6c8e3e79639709936ea48e..ab7707ab7d1bbb2ff7bdad7818bd6259cc464021 100644
+index bda00635ccb518d9ab6c8e3e79639709936ea48e..73e6f2e6488fe8170162ba3618d9e5e99c2d629b 100644
 --- a/src/subduction/storage.ts
 +++ b/src/subduction/storage.ts
 @@ -326,13 +326,36 @@ export class SubductionStorageBridge implements SedimentreeStorage {

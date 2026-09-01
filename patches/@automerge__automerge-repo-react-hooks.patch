@@ -1,0 +1,22 @@
+diff --git a/dist/index.js b/dist/index.js
+index ac9a2b8df686e78e022736a34ca3506e645c26c9..b5fa0e7229e19bc3513395bdf4cac7e597dbe143 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1490,7 +1490,16 @@ function useDocHandles(ids, { suspense = false } = {}) {
+ 			nextHandleMap.set(id, handle);
+ 		} catch (e) {
+ 			if (e instanceof Promise) pendingPromises.push(wrapper);
+-			else nextHandleMap.set(id, void 0);
++			else {
++				// A settled-rejected wrapper is dead: its promise rejected once
++				// (e.g. the document was "unavailable" because decryption keys
++				// had not arrived yet) and `read()` will keep throwing forever.
++				// Drop it so the next render calls `Repo.find` again, which (with
++				// the unavailable-retry patch) evicts the dead query and starts a
++				// fresh one — letting the document resolve once its keys land.
++				wrapperCache.delete(id);
++				nextHandleMap.set(id, void 0);
++			}
+ 		}
+ 	}
+ 	useEffect(() => {

@@ -10,6 +10,7 @@ packages:
 patchedDependencies:
   '@automerge/automerge-repo': patches/@automerge__automerge-repo.patch
   '@automerge/automerge-repo-keyhive': patches/@automerge__automerge-repo-keyhive.patch
+  '@automerge/automerge-repo-react-hooks': patches/@automerge__automerge-repo-react-hooks.patch
 
 catalog:
   "@automerge/automerge": 3.4.1
