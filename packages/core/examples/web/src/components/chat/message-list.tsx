@@ -12,6 +12,8 @@ import {
 
 import { useAppContext } from "@/app-context"
 import { useMessages } from "@/hooks/use-messages"
+import { useNewMessageSound } from "@/hooks/use-message-sound"
+import { useNewMessageTitle } from "@/hooks/use-new-message-title"
 import { formatRelativeTime, identifierColor } from "@/utilities"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { ZernoGroup, ZernoMessage, ZernoMessageList } from "@/service"
@@ -202,6 +204,8 @@ function ChatMessageRun({
 
 // MARK: ChatMessageList
 
+const NEW_MESSAGE_SOUND_PATH = "/notification.mp3"
+
 export interface ChatMessageListProps {
   selectedGroup: ZernoGroup
 }
@@ -221,9 +225,13 @@ export function ChatMessageList({ selectedGroup }: ChatMessageListProps) {
   })
 
   const messages = useMessages(messageLists, {
-    limit: 100,
+    limit: 255, // TODO: Make this configurable
     order: "desc",
   })
+
+  // TODO: Make this configurable
+  useNewMessageSound(messages, myId, NEW_MESSAGE_SOUND_PATH)
+  useNewMessageTitle(messages, myId)
 
   const messageRuns = useMemo<ChatMessageRunProps[]>(() => {
     const runs: ChatMessageRunProps[] = []
