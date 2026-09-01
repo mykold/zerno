@@ -15,6 +15,7 @@ import { useMessages } from "@/hooks/use-messages"
 import { useNewMessageSound } from "@/hooks/use-message-sound"
 import { useNewMessageTitle } from "@/hooks/use-new-message-title"
 import { identifierColor } from "@/utilities"
+import { Markdown } from "@/components/ui/markdown"
 import { RelativeTime } from "@/components/relative-time"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { ZernoGroup, ZernoMessage, ZernoMessageList } from "@/service"
@@ -81,7 +82,7 @@ function ChatMessageRow({ message, messageList, isOwn }: ChatMessageRowProps) {
   if (isEditing) {
     return (
       <Bubble variant="muted" className="min-w-16">
-        <BubbleContent className="py-1 wrap-anywhere whitespace-pre-wrap">
+        <BubbleContent className="py-1 wrap-anywhere">
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -115,8 +116,8 @@ function ChatMessageRow({ message, messageList, isOwn }: ChatMessageRowProps) {
 
   return (
     <Bubble variant="muted" className="min-w-16">
-      <BubbleContent className="py-1 wrap-anywhere whitespace-pre-wrap">
-        {message.content}
+      <BubbleContent className="py-1 wrap-anywhere">
+        <Markdown>{message.content}</Markdown>
         {message.editedAt ? (
           <span className="ml-2 text-xs text-muted-foreground">
             (edited <RelativeTime timestamp={message.editedAt} ago />)
