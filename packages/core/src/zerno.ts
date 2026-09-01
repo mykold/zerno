@@ -40,7 +40,7 @@ export class Zerno {
     this.hive = hive;
     this.debug = onDebugEvent;
     this.documents = new DocumentService(repo, hive, onDebugEvent);
-    this.access = new AccessService(repo, hive);
+    this.access = new AccessService(hive);
     this.identity = new IdentityService(hive);
 
     if (resyncSubductionInterval && resyncSubductionInterval > 0)

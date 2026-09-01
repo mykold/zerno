@@ -6,7 +6,11 @@ import {
   type ContactCard,
   type DocMember,
 } from "@automerge/automerge-repo-keyhive";
-import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
+import {
+  hexToUint8Array,
+  uint8ArrayToHex,
+} from "@automerge/automerge-repo-keyhive/dist/utilities.js";
+import { TtlCache } from "./cache.js";
 
 export function sanitazeIdentifier(
   identifier: Identifier | string,
@@ -15,11 +19,21 @@ export function sanitazeIdentifier(
   return new Identifier(hexToUint8Array(identifier));
 }
 
+const ACCESS_TTL = 60_000; /* ms */
+
+function cacheKey(id: AutomergeUrl, member: Identifier): string {
+  return `${id}:${uint8ArrayToHex(member.toBytes())}`;
+}
+
 export class AccessService {
-  constructor(
-    private readonly repo: Repo,
-    private readonly hive: AutomergeRepoKeyhive,
-  ) {}
+  private readonly accessCache = new TtlCache<string, Access | undefined>(
+    ACCESS_TTL,
+  );
+  private readonly membersCache = new TtlCache<AutomergeUrl, DocMember[]>(
+    ACCESS_TTL,
+  );
+
+  constructor(private readonly hive: AutomergeRepoKeyhive) {}
 
   /** Grants a contact card access to a document */
   async grant(args: {
@@ -28,6 +42,8 @@ export class AccessService {
     access: Access;
   }): Promise<void> {
     await this.hive.addMemberToDoc(args.id, args.contactCard, args.access);
+    this.accessCache.delete(cacheKey(args.id, args.contactCard.id));
+    this.membersCache.delete(args.id);
   }
 
   /** Revokes a member access from a document */
@@ -35,7 +51,10 @@ export class AccessService {
     id: AutomergeUrl;
     member: Identifier | string;
   }): Promise<void> {
-    await this.hive.revokeMemberFromDoc(args.id, args.member);
+    const member = sanitazeIdentifier(args.member);
+    await this.hive.revokeMemberFromDoc(args.id, member);
+    this.accessCache.delete(cacheKey(args.id, member));
+    this.membersCache.delete(args.id);
   }
 
   /** Returns the members of a given document that have at least the given access level */
@@ -53,7 +72,12 @@ export class AccessService {
 
   /** Returns the members of a given document */
   async members(id: AutomergeUrl): Promise<DocMember[]> {
-    return this.hive.listMembers(id);
+    const cached = this.membersCache.get(id);
+    if (cached) return cached;
+
+    const members = await this.hive.listMembers(id);
+    this.membersCache.set(id, members);
+    return members;
   }
 
   /** Returns the access level of a given member */
@@ -61,7 +85,14 @@ export class AccessService {
     id: AutomergeUrl;
     member: Identifier | string;
   }): Promise<Access | undefined> {
-    return this.hive.bestAccessForDoc(sanitazeIdentifier(args.member), args.id);
+    const member = sanitazeIdentifier(args.member);
+
+    const key = cacheKey(args.id, member);
+    if (this.accessCache.has(key)) return this.accessCache.get(key);
+
+    const access = await this.hive.bestAccessForDoc(member, args.id);
+    this.accessCache.set(key, access);
+    return access;
   }
 
   /** Returns true if the current user has at least the given access level */
@@ -70,10 +101,8 @@ export class AccessService {
     member: Identifier | string;
     access: Access;
   }): Promise<boolean> {
-    const access = await this.hive.bestAccessForDoc(
-      sanitazeIdentifier(args.member),
-      args.id,
-    );
+    const member = sanitazeIdentifier(args.member);
+    const access = await this.getAccess({ id: args.id, member: member });
     return access?.atLeast(args.access) ?? false;
   }
 
@@ -83,10 +112,12 @@ export class AccessService {
     access: Access;
   }): Promise<void> {
     await this.hive.setPublicAccess(args.id, args.access);
+    this.accessCache.clear();
   }
 
   /** Revokes public access to a document */
   async revokePublicAccess(id: AutomergeUrl): Promise<void> {
     await this.hive.revokeMemberFromDoc(id, Identifier.publicId());
+    this.accessCache.clear();
   }
 }
