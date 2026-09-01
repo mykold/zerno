@@ -1,14 +1,14 @@
 import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js"
 
 export function formatRelativeTime(
-  createdAt: number,
+  timestamp: number,
   ago: boolean = false
 ): string {
   if (ago) {
-    const result = formatRelativeTime(createdAt)
+    const result = formatRelativeTime(timestamp)
     return result === "now" ? "just now" : `${result} ago`
   }
-  const seconds = Math.floor((Date.now() - createdAt) / 1000)
+  const seconds = Math.floor((Date.now() - timestamp) / 1000)
   if (seconds < 60) return "now"
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
   if (seconds < 86400) return `${Math.floor(seconds / 3_600)}h`

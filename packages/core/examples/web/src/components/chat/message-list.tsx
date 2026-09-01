@@ -14,7 +14,8 @@ import { useAppContext } from "@/app-context"
 import { useMessages } from "@/hooks/use-messages"
 import { useNewMessageSound } from "@/hooks/use-message-sound"
 import { useNewMessageTitle } from "@/hooks/use-new-message-title"
-import { formatRelativeTime, identifierColor } from "@/utilities"
+import { identifierColor } from "@/utilities"
+import { RelativeTime } from "@/components/relative-time"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { ZernoGroup, ZernoMessage, ZernoMessageList } from "@/service"
 import {
@@ -118,7 +119,7 @@ function ChatMessageRow({ message, messageList, isOwn }: ChatMessageRowProps) {
         {message.content}
         {message.editedAt ? (
           <span className="ml-2 text-xs text-muted-foreground">
-            (edited {formatRelativeTime(message.editedAt, true)})
+            (edited <RelativeTime timestamp={message.editedAt} ago />)
           </span>
         ) : null}
       </BubbleContent>
@@ -185,7 +186,7 @@ function ChatMessageRun({
       <MessageContent className="gap-1">
         <MessageHeader className="gap-2">
           <span className="font-semibold">{author}</span>
-          <span>{formatRelativeTime(createdAt)}</span>
+          <RelativeTime timestamp={createdAt} />
         </MessageHeader>
         <BubbleGroup className="gap-1">
           {messages.map((message) => (
