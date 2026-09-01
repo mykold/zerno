@@ -8,6 +8,7 @@ export {
   useDocuments,
   useDocHandle,
   useDocHandles,
+  useDocumentSelector,
   useMembers,
 } from "./hooks.js";
 export type {

@@ -20,7 +20,8 @@ import { useZerno } from "./ZernoProvider.js";
 
 // MARK: useRetryUnavailableDocs
 
-const RETRY_UNAVAILABLE_DELAY_MS = 1_000;
+const RETRY_UNAVAILABLE_BASE_DELAY_MS = 1_000;
+const RETRY_UNAVAILABLE_MAX_DELAY_MS = 10_000;
 
 /**
  * Re-issues finds for documents whose query settled to "unavailable".
@@ -29,7 +30,8 @@ const RETRY_UNAVAILABLE_DELAY_MS = 1_000;
  * (grants sync on a ~1s debounce), so a query can reject with "unavailable".
  * `Repo.find()` evicts such queries, so periodically forcing a re-render
  * which makes the wrapped hooks call `find()` again is enough for the
- * documents to appear once their keys land.
+ * documents to appear once their keys land. The tick backs off from 1s to
+ * a 10s cap so a permanently unavailable document does not churn.
  */
 function useRetryUnavailableDocs(
   ids: readonly (AnyDocumentId | undefined)[],
@@ -40,6 +42,7 @@ function useRetryUnavailableDocs(
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let delayMs = RETRY_UNAVAILABLE_BASE_DELAY_MS;
     const tick = (): void => {
       let anyUnavailable = false;
       for (const id of idsKey.split("|")) {
@@ -52,7 +55,8 @@ function useRetryUnavailableDocs(
         }
       }
       if (anyUnavailable) forceRender({});
-      timer = setTimeout(tick, RETRY_UNAVAILABLE_DELAY_MS);
+      timer = setTimeout(tick, delayMs);
+      delayMs = Math.min(delayMs * 2, RETRY_UNAVAILABLE_MAX_DELAY_MS);
     };
     tick();
     return () => clearTimeout(timer);
@@ -278,6 +282,16 @@ export function useDocHandles<T>(
 
 // MARK: useDocumentSelector
 
+export function useDocumentSelector<T, R>(
+  handle: DocHandle<T>,
+  selector: (doc: T) => R,
+): R;
+
+export function useDocumentSelector<T, R>(
+  handle: DocHandle<T> | undefined,
+  selector: (doc: T) => R,
+): R | undefined;
+
 /**
  * Subscribes to a specific slice of a `DocHandle<T>`, re-rendering the component
  * ONLY when the selected data slice changes.
@@ -320,7 +334,9 @@ export function useDocumentSelector<T, R>(
       return () => void handle.removeListener("change", onStoreChange);
     },
     () => {
-      if (!handle || !handle.doc()) return undefined;
+      if (!handle) return undefined;
+      const doc = handle.doc();
+      if (!doc) return undefined;
       return selector(handle.doc());
     },
   );
@@ -330,22 +346,34 @@ export function useDocumentSelector<T, R>(
 
 const MEMBERS_REFRESH_DEBOUNCE_MS = 300;
 
-export function useMembers(groupId?: AutomergeUrl): DocMember[] | undefined {
+export function useMembers(groupId: AutomergeUrl, access?: Access): DocMember[];
+export function useMembers(
+  groupId: AutomergeUrl | undefined,
+  access?: Access,
+): DocMember[] | undefined;
+
+export function useMembers(
+  groupId: AutomergeUrl | undefined,
+  access?: Access,
+): DocMember[] | undefined {
   const zerno = useZerno();
 
-  const [members, setMembers] = useState<DocMember[] | undefined>(undefined);
+  const [members, setMembers] = useState<DocMember[]>([]);
 
   useEffect(() => {
     if (!groupId) {
-      setMembers(undefined);
+      setMembers([]);
       return;
     }
     let isMounted = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    setMembers(undefined);
+    setMembers([]);
     const fetchMembers = (): void => {
       zerno.access
-        .membersWithAccess({ id: groupId, access: Access.read() })
+        .membersWithAccess({
+          id: groupId,
+          access: access ?? Access.read(),
+        })
         .then((result) => {
           if (isMounted) setMembers(result);
         })
