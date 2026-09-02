@@ -8,13 +8,8 @@ import type {
 } from "@automerge/automerge-repo";
 import type { AutomergeRepoKeyhive } from "@automerge/automerge-repo-keyhive";
 
-/** Upper bound for find() when the caller provides no signal. */
+/** Upper bound for .find(...) when the caller provides no signal. */
 const DEFAULT_FIND_TIMEOUT_MS = 120_000;
-
-export type DebugEventFn = (
-  kind: string,
-  data?: Record<string, unknown>,
-) => void;
 
 export class DocumentService {
   /** All document urls this instance has created or found. */
@@ -23,15 +18,12 @@ export class DocumentService {
   constructor(
     private readonly repo: Repo,
     private readonly hive: AutomergeRepoKeyhive,
-    // TODO: Kinda ugly to pass this. Maybe we should just remove debug infrastructure.
-    private readonly debug?: DebugEventFn,
   ) {}
 
   async create<T>(initialValue: T): Promise<DocHandle<T>> {
     const handle = await this.repo.create2<T>(initialValue);
     await this.hive.addSyncServerRelayToDoc(handle.url);
     this.#urls.add(handle.url);
-    this.debug?.("doc-created", { url: handle.url });
     return handle;
   }
 

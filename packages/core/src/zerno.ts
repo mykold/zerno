@@ -2,15 +2,13 @@ import type { Repo } from "@automerge/automerge-repo";
 import type { AutomergeRepoKeyhive } from "@automerge/automerge-repo-keyhive";
 
 import { DocumentService } from "./document.js";
-import type { DebugEventFn } from "./document.js";
 import { AccessService } from "./access.js";
 import { IdentityService } from "./identity.js";
+import { GroupService } from "./groups.js";
 
 export interface ZernoOptions {
   repo: Repo;
   hive: AutomergeRepoKeyhive;
-  /** Optional structured debug-event sink (file logging, diagnostics). */
-  onDebugEvent?: DebugEventFn;
   /**
    * Periodically re-arms the subduction sync loop for every known document.
    *
@@ -23,25 +21,21 @@ export interface ZernoOptions {
 }
 
 export class Zerno {
-  readonly repo: Repo;
-  readonly hive: AutomergeRepoKeyhive;
-  readonly documents: DocumentService;
-  readonly access: AccessService;
-  readonly identity: IdentityService;
-  readonly debug?: DebugEventFn;
+  public readonly repo: Repo;
+  public readonly hive: AutomergeRepoKeyhive;
 
-  constructor({
-    repo,
-    hive,
-    onDebugEvent,
-    resyncSubductionInterval,
-  }: ZernoOptions) {
+  public readonly documents: DocumentService;
+  public readonly access: AccessService;
+  public readonly identity: IdentityService;
+  public readonly groups: GroupService;
+
+  constructor({ repo, hive, resyncSubductionInterval }: ZernoOptions) {
     this.repo = repo;
     this.hive = hive;
-    this.debug = onDebugEvent;
-    this.documents = new DocumentService(repo, hive, onDebugEvent);
+    this.documents = new DocumentService(repo, hive);
     this.access = new AccessService(hive);
     this.identity = new IdentityService(hive);
+    this.groups = new GroupService(hive);
 
     if (resyncSubductionInterval && resyncSubductionInterval > 0)
       this.documents.startResyncSubductionTimer(resyncSubductionInterval);

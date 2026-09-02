@@ -4,5 +4,6 @@ A thin adapter over [`@automerge/automerge-repo`](https://github.com/automerge/a
 
 ## Examples
 
-- [zerno-repl](./examples/repl/) is a minimal example demonstrating Zerno documents, identities, and access control.
-- [zerno-chat](./examples/chat/) demonstrates a simple real-time chat built with Zerno.
+- [zerno-repl](./examples/repl/) demonstrates a minimal setup with Zerno
+- [zerno-chat](./examples/chat/) demonstrates a simple real-time chat in the terminal
+- [zerno-web](./examples/web/) demonstrates a real-time chat in the browser
