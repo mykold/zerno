@@ -6,11 +6,11 @@ import { useDocHandle } from "zerno-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAppContext } from "@/app-context"
-import type { ZernoGroup } from "@/service"
+import type { ZernoChannel } from "@/service"
 
-// MARK: ChatInputSkeleton
+// MARK: ChannelInputSkeleton
 
-export function ChatInputSkeleton() {
+export function ChannelInputSkeleton() {
   return (
     <footer className="shrink-0 bg-background p-2">
       <div className="flex gap-2">
@@ -20,18 +20,18 @@ export function ChatInputSkeleton() {
   )
 }
 
-// MARK: ChatInput
+// MARK: ChannelInput
 
-export interface ChatInputProps {
-  selectedGroupUrl: AutomergeUrl
+export interface ChannelInputProps {
+  selectedChannelUrl: AutomergeUrl
 }
 
-export function ChatInput({ selectedGroupUrl }: ChatInputProps) {
+export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   const { service } = useAppContext()
   const [content, setContent] = useState("")
 
   const formId = useId()
-  const group = useDocHandle<ZernoGroup>(selectedGroupUrl, {
+  const channel = useDocHandle<ZernoChannel>(selectedChannelUrl, {
     suspense: true,
   })
 
@@ -40,7 +40,7 @@ export function ChatInput({ selectedGroupUrl }: ChatInputProps) {
     if (!content.trim()) return
 
     try {
-      await service.groups.sendMessage({ group, content })
+      await service.channels.sendMessage({ channel, content })
     } catch (e) {
       const message = (e as Error).message
       toast.error(message)

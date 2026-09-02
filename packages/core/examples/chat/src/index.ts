@@ -1,4 +1,4 @@
-﻿import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 import "@automerge/automerge-subduction";
 import { Repo } from "@automerge/automerge-repo";
@@ -11,7 +11,7 @@ import { Zerno } from "zerno-core";
 import {
   Service,
   WorkspaceService,
-  GroupService,
+  ChannelService,
   PhonebookService,
 } from "./service/index.js";
 import { render } from "./app.js";
@@ -69,7 +69,7 @@ const zerno = new Zerno({
 
 const phonebooks = new PhonebookService(zerno);
 const workspaces = new WorkspaceService(zerno, phonebooks);
-const groups = new GroupService(zerno, phonebooks);
+const channels = new ChannelService(zerno, phonebooks);
 
 // NOTE: For now, we accept that the user can lose the `.zerno/workspace-url` if the file
 // containing it is deleted. In the future, we should create a document index.
@@ -82,7 +82,7 @@ try {
   await cacheAutomergeUrl(CONFIG.ZERNO.WORKSPACE_URL, workspaceId);
 }
 
-const service = new Service(zerno, workspaces, groups, phonebooks);
+const service = new Service(zerno, workspaces, channels, phonebooks);
 
 (async () => {
   const { waitUntilExit } = render({

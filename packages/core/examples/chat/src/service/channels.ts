@@ -6,7 +6,7 @@ import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive";
 import type { ZernoMessageList } from "./messages.js";
 import type { PhonebookService } from "./phonebook.js";
 
-export interface ZernoGroup {
+export interface ZernoChannel {
   name: string;
   phonebookId: AutomergeUrl;
   messages: Record<
@@ -15,26 +15,29 @@ export interface ZernoGroup {
   >;
 }
 
-export class GroupService {
+export class ChannelService {
   constructor(
     private readonly zerno: Zerno,
     private readonly phonebooks: PhonebookService,
   ) {}
 
   async find(
-    groupId: AutomergeUrl,
+    channelId: AutomergeUrl,
     timeout: number = 60_000 /* ms */,
-  ): Promise<DocHandle<ZernoGroup>> {
+  ): Promise<DocHandle<ZernoChannel>> {
     // documents.find retries internally while the document is unavailable
     // (e.g. keyhive capability grants still in flight).
-    return await this.zerno.documents.find<ZernoGroup>(groupId, {
+    return await this.zerno.documents.find<ZernoChannel>(channelId, {
       signal: AbortSignal.timeout(timeout),
     });
   }
 
-  async sendMessage(args: { group: DocHandle<ZernoGroup>; content: string }) {
+  async sendMessage(args: {
+    channel: DocHandle<ZernoChannel>;
+    content: string;
+  }) {
     const author = uint8ArrayToHex(this.zerno.identity.me().id.toBytes());
-    let messageListId = args.group.doc().messages[author];
+    let messageListId = args.channel.doc().messages[author];
 
     let messageList: DocHandle<ZernoMessageList>;
     if (!messageListId) {
@@ -56,7 +59,7 @@ export class GroupService {
       }),
     );
 
-    const members = await this.zerno.access.members(args.group.url);
+    const members = await this.zerno.access.members(args.channel.url);
     for (const member of members) {
       if (member.isSyncServer) continue;
       if (member.id === author) continue;
@@ -70,12 +73,12 @@ export class GroupService {
       if (hasAccess) continue;
 
       const contactCard = await this.phonebooks.resolve({
-        phonebookId: args.group.doc().phonebookId,
+        phonebookId: args.channel.doc().phonebookId,
         identifier: member.id,
       });
       await this.zerno.access.grant({
         id: messageList.url,
-        contactCard,
+        member: contactCard,
         access: Access.read(),
       });
     }
@@ -83,8 +86,8 @@ export class GroupService {
     // Flush capability grants immediately so peers get decryption keys ASAP.
     this.zerno.syncKeyhive();
 
-    if (!args.group.doc().messages[author]) {
-      args.group.change((d) => (d.messages[author] = messageList.url));
+    if (!args.channel.doc().messages[author]) {
+      args.channel.change((d) => (d.messages[author] = messageList.url));
     }
   }
 }

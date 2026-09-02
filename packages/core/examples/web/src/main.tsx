@@ -17,7 +17,7 @@ import { AppContextProvider } from "@/app-context.tsx"
 import { Toaster } from "@/components/ui/sonner.tsx"
 import {
   Service,
-  GroupService,
+  ChannelService,
   PhonebookService,
   WorkspaceService,
 } from "./service"
@@ -101,8 +101,8 @@ async function main() {
 
   const phonebooks = new PhonebookService(zerno)
   const workspaces = new WorkspaceService(zerno, phonebooks)
-  const groups = new GroupService(zerno, phonebooks)
-  const service = new Service(zerno, workspaces, groups, phonebooks)
+  const channels = new ChannelService(zerno)
+  const service = new Service(zerno, workspaces, channels, phonebooks)
 
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
@@ -118,7 +118,7 @@ async function main() {
                 <BrowserRouter>
                   <Routes>
                     <Route path="/" element={<App />} />
-                    <Route path="/groups/:group" element={<App />} />
+                    <Route path="/channels/:channel" element={<App />} />
                   </Routes>
                 </BrowserRouter>
               </AppProvider>

@@ -7,10 +7,10 @@ Ink/React TUI for local-first group chat with access control.
 Chat data is spread across three document types, discoverable from a workspace document:
 
 * [`ZernoWorkspace`](./src/service/workspaces.ts) holds the list of group URLs.
-* [`ZernoGroup`](./src/service/groups.ts) holds the group name, a reference to its phonebook, and a per-author message list URL for every member.
+* [`ZernoChannel`](./src/service/channels.ts) holds the group name, a reference to its phonebook, and a per-author message list URL for every member.
 * [`ZernoPhonebook`](./src/service/phonebook.ts) maps member identifiers to their contact cards, so peers can resolve contact cards for grant flows.
 
-Messages are written to a per-author message list. When sending, the author grants read access to their own message list to every group member, so others can decrypt the messages. The `ZernoGroup` document only provides the references to these message lists; access to each message list is granted separately by its author.
+Messages are written to a per-author message list. When sending, the author grants read access to their own message list to every group member, so others can decrypt the messages. The `ZernoChannel` document only provides the references to these message lists; access to each message list is granted separately by its author.
 
 ## Quick start
 
@@ -90,7 +90,7 @@ On Peer 2, open the group using that URL:
 Peer 2> /open ei8G5sEVjM...
 ```
 
-Peer 2 receives the `ZernoGroup` document and its access grants through the relay. The `ZernoGroup` document provides the `ZernoPhonebook` reference and the per-author message list URLs needed to discover the group's members and messages.
+Peer 2 receives the `ZernoChannel` document and its access grants through the relay. The `ZernoChannel` document provides the `ZernoPhonebook` reference and the per-author message list URLs needed to discover the group's members and messages.
 
 Switch focus to the command input with tab and send a message on either peer:
 

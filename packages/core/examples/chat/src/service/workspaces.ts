@@ -2,12 +2,12 @@ import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 import { Access } from "zerno-core";
 import type { ContactCard, Zerno } from "zerno-core";
 
-import type { ZernoGroup } from "./groups.js";
+import type { ZernoChannel } from "./channels.js";
 import type { PhonebookService } from "./phonebook.js";
 
 export interface ZernoWorkspace {
   // TODO: Consider replacing with a map-based set (`Record<AutomergeUrl, true>`) for O(1) lookups
-  groups: AutomergeUrl[];
+  channels: AutomergeUrl[];
 }
 
 export class WorkspaceService {
@@ -16,19 +16,19 @@ export class WorkspaceService {
     private readonly phonebooks: PhonebookService,
   ) {}
 
-  async openGroup(args: {
+  async openChannel(args: {
     workspace: DocHandle<ZernoWorkspace>;
-    group: DocHandle<ZernoGroup>;
+    channel: DocHandle<ZernoChannel>;
   }): Promise<void> {
-    if (args.workspace.doc().groups.some((g) => g === args.group.url)) {
+    if (args.workspace.doc().channels.some((g) => g === args.channel.url)) {
       throw new Error("Group already opened in your workspace");
     }
-    args.workspace.change((d) => d.groups.push(args.group.url));
+    args.workspace.change((d) => d.channels.push(args.channel.url));
   }
 
   async create(): Promise<DocHandle<ZernoWorkspace>> {
     return await this.zerno.documents.create<ZernoWorkspace>({
-      groups: [],
+      channels: [],
     });
   }
 
@@ -40,10 +40,10 @@ export class WorkspaceService {
     return await this.zerno.documents.find<ZernoWorkspace>(id, { signal });
   }
 
-  async createGroup(args: {
+  async createChannel(args: {
     workspace: DocHandle<ZernoWorkspace>;
     name: string;
-  }): Promise<DocHandle<ZernoGroup>> {
+  }): Promise<DocHandle<ZernoChannel>> {
     // Create phonebook
     const phonebook = await this.phonebooks.create();
 
@@ -54,36 +54,36 @@ export class WorkspaceService {
       contactCard: me.contactCard,
     });
 
-    // Create the group
-    const group = await this.zerno.documents.create<ZernoGroup>({
+    // Create the channel
+    const channel = await this.zerno.documents.create<ZernoChannel>({
       name: args.name,
       phonebookId: phonebook.url,
       messages: {},
     });
 
-    // Add the group to the workspace
-    args.workspace.change((d) => d.groups.push(group.url));
+    // Add the channel to the workspace
+    args.workspace.change((d) => d.channels.push(channel.url));
 
-    return group;
+    return channel;
   }
 
-  async closeGroup(args: {
+  async closeChannel(args: {
     workspace: DocHandle<ZernoWorkspace>;
-    groupId: AutomergeUrl;
+    channelId: AutomergeUrl;
   }): Promise<void> {
-    // Remove the group from the workspace
+    // Remove the channel from the workspace
     args.workspace.change((d) => {
-      const index = d.groups.indexOf(args.groupId);
-      if (index !== -1) d.groups.splice(index, 1);
+      const index = d.channels.indexOf(args.channelId);
+      if (index !== -1) d.channels.splice(index, 1);
     });
   }
 
-  async grantGroup(args: {
-    group: DocHandle<ZernoGroup>;
+  async grantChannel(args: {
+    channel: DocHandle<ZernoChannel>;
     contactCard: ContactCard;
     access: Access;
   }) {
-    const phonebookId = args.group.doc().phonebookId;
+    const phonebookId = args.channel.doc().phonebookId;
     await this.phonebooks.add({
       phonebookId,
       contactCard: args.contactCard,
@@ -91,23 +91,23 @@ export class WorkspaceService {
 
     // Grant access to the group
     await this.zerno.access.grant({
-      id: args.group.url,
-      contactCard: args.contactCard,
+      id: args.channel.url,
+      member: args.contactCard,
       access: args.access,
     });
 
     // Grant access to the phonebook of the group
     await this.zerno.access.grant({
       id: phonebookId,
-      contactCard: args.contactCard,
+      member: args.contactCard,
       access: args.access,
     });
 
     // Grant access to all message lists of the group
-    for (const messageList of Object.values(args.group.doc().messages)) {
+    for (const messageList of Object.values(args.channel.doc().messages)) {
       await this.zerno.access.grant({
         id: messageList,
-        contactCard: args.contactCard,
+        member: args.contactCard,
         access: args.access,
       });
     }

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select"
 import { useAppContext } from "@/app-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { ZernoGroup } from "@/service"
+import type { ZernoChannel } from "@/service"
 
 const ACCESSES = [
   { value: "relay", level: 0 },
@@ -32,15 +32,19 @@ const ACCESSES = [
   { value: "admin", level: 3 },
 ]
 
-export interface GrantGroupSheetProps {
+export interface GrantChannelSheetProps {
   url: AutomergeUrl
   open: boolean
   setOpen: (v: boolean) => void
 }
 
-export function GrantGroupSheet({ url, open, setOpen }: GrantGroupSheetProps) {
+export function GrantChannelSheet({
+  url,
+  open,
+  setOpen,
+}: GrantChannelSheetProps) {
   const { service } = useAppContext()
-  const group = useDocHandle<ZernoGroup>(url, { suspense: true })
+  const channel = useDocHandle<ZernoChannel>(url, { suspense: true })
 
   type TabType = "contact-card" | "address-book"
   const [tab, setTab] = useState<TabType>("contact-card")
@@ -60,7 +64,7 @@ export function GrantGroupSheet({ url, open, setOpen }: GrantGroupSheetProps) {
       .catch(toast.error)
   }, [service, url])
 
-  const handleGrantGroup = async () => {
+  const handleGrantChannel = async () => {
     switch (tab) {
       case "contact-card": {
         try {
@@ -69,8 +73,8 @@ export function GrantGroupSheet({ url, open, setOpen }: GrantGroupSheetProps) {
             break
           }
 
-          await service.workspaces.grantGroup({
-            group,
+          await service.workspaces.grantChannel({
+            channel,
             contactCard: decodeContactCard(contactCard),
             access: Access.fromString(access),
           })
@@ -80,7 +84,7 @@ export function GrantGroupSheet({ url, open, setOpen }: GrantGroupSheetProps) {
           break
         }
 
-        toast.success("Group successfully granted")
+        toast.success("Channel successfully granted")
         setOpen(false)
         break
       }
@@ -96,7 +100,7 @@ export function GrantGroupSheet({ url, open, setOpen }: GrantGroupSheetProps) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent showCloseButton={false}>
         <SheetHeader>
-          <SheetTitle>Grant group access</SheetTitle>
+          <SheetTitle>Grant channel access</SheetTitle>
           <SheetDescription>
             Select a user and choose the level of access they should have to
             this document.
@@ -153,7 +157,7 @@ export function GrantGroupSheet({ url, open, setOpen }: GrantGroupSheetProps) {
 
           <div className="grid gap-3">
             <div>
-              <Label htmlFor="group-access">Access</Label>
+              <Label htmlFor="channel-access">Access</Label>
 
               <p className="text-sm text-muted-foreground">
                 Higher levels include all permissions from lower levels.
@@ -177,7 +181,7 @@ export function GrantGroupSheet({ url, open, setOpen }: GrantGroupSheetProps) {
         </div>
 
         <SheetFooter>
-          <Button onClick={handleGrantGroup}>Save changes</Button>
+          <Button onClick={handleGrantChannel}>Save changes</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

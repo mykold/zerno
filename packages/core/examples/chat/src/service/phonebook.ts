@@ -4,8 +4,6 @@ import { ContactCard } from "@automerge/automerge-repo-keyhive";
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 import { Zerno } from "zerno-core";
 
-import type { GroupService } from "./groups.js";
-
 function key(identifier: Identifier | string): string {
   if (typeof identifier === "string") return identifier;
   return uint8ArrayToHex(identifier.toBytes());
@@ -14,7 +12,11 @@ function key(identifier: Identifier | string): string {
 export type ZernoPhonebook = Record<string, string>;
 
 export class PhonebookService {
-  constructor(private readonly zerno: Zerno) {}
+  private readonly zerno: Zerno;
+
+  constructor(zerno: Zerno) {
+    this.zerno = zerno;
+  }
 
   async find(
     id: AutomergeUrl,

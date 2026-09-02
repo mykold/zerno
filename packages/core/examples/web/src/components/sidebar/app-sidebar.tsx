@@ -31,11 +31,11 @@ import {
 import { useAppContext } from "@/app-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Groups } from "@/components/sidebar/groups"
+import { Channels } from "@/components/sidebar/channels"
 import { identifierColor, shrinkIdentifier } from "@/utilities"
 import { useTheme } from "@/components/theme-provider"
-import { OpenGroupDialog } from "./open-group-dialog"
-import { CreateGroupDialog } from "./create-group-dialog"
+import { OpenChannelDialog } from "./open-channel-dialog"
+import { CreateChannelDialog } from "./create-channel-dialog"
 
 // MARK: IdentifierTooltip
 
@@ -149,7 +149,7 @@ function AppSidebarFooter() {
 
 export function AppSidebar() {
   const { workspace } = useAppContext()
-  const groups = useDocumentSelector(workspace, (d) => d.groups)
+  const channels = useDocumentSelector(workspace, (d) => d.channels)
 
   return (
     <Sidebar collapsible="icon">
@@ -163,24 +163,24 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <CreateGroupDialog>
+              <CreateChannelDialog>
                 <SidebarMenuButton className="hover:bg-sidebar-accent">
                   <SquarePenIcon />
-                  Create group
+                  Create channel
                 </SidebarMenuButton>
-              </CreateGroupDialog>
+              </CreateChannelDialog>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <OpenGroupDialog>
+              <OpenChannelDialog>
                 <SidebarMenuButton className="hover:bg-sidebar-accent">
                   <Link2Icon />
-                  Open group
+                  Open channel
                 </SidebarMenuButton>
-              </OpenGroupDialog>
+              </OpenChannelDialog>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        <Groups urls={groups ?? []} />
+        <Channels urls={channels ?? []} />
       </SidebarContent>
       <AppSidebarFooter />
     </Sidebar>

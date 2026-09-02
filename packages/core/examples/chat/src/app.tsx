@@ -7,13 +7,13 @@ import { useDocument, useDocuments, ZernoProvider } from "zerno-react";
 
 import { useRing } from "./hooks/use-ring.js";
 import { useToast, ToastProvider, Toast } from "./hooks/use-toast.js";
-import type { Service, ZernoWorkspace, ZernoGroup } from "./service/index.js";
+import type { Service, ZernoWorkspace, ZernoChannel } from "./service/index.js";
 import { shrinkIdentifier, rotate } from "./utilities.js";
 import {
   CommandInput,
-  GroupList,
+  ChannelList,
   MessageList,
-  Group,
+  Channel,
 } from "./components/index.js";
 
 export interface AppProps {
@@ -28,11 +28,11 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
   const [workspace] = useDocument<ZernoWorkspace>(workspaceId, {
     suspense: true,
   });
-  const [groups] = useDocuments<ZernoGroup>(workspace.groups, {
+  const [channels] = useDocuments<ZernoChannel>(workspace.channels, {
     suspense: false,
   });
 
-  const boxes = ["command-input", "groups"] as const;
+  const boxes = ["command-input", "channels"] as const;
   const [selectedBox, setSelectedBox] = useState<(typeof boxes)[number]>(
     boxes[0],
   );
@@ -43,19 +43,19 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
     trigger: selectedBox,
   });
 
-  const [selectedGroupId, setSelectedGroupId] = useState<
+  const [selectedChannelId, setselectedChannelId] = useState<
     AutomergeUrl | undefined
   >();
-  const groupIds = Array.from(groups.keys());
+  const channelIds = Array.from(channels.keys());
   useEffect(() => {
-    setSelectedGroupId((current) => {
-      if (groupIds.length === 0) return undefined;
-      if (current !== undefined && groups.has(current)) {
+    setselectedChannelId((current) => {
+      if (channelIds.length === 0) return undefined;
+      if (current !== undefined && channels.has(current)) {
         return current;
       }
-      return groupIds[groupIds.length - 1];
+      return channelIds[channelIds.length - 1];
     });
-  }, [groups]);
+  }, [channels]);
 
   useInput((input, key) => {
     if (key.tab) {
@@ -68,13 +68,13 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
     }
 
     switch (selectedBox) {
-      case "groups": {
-        const i = selectedGroupId ? groupIds.indexOf(selectedGroupId) : 0;
-        if (groups.size === 0) return;
+      case "channels": {
+        const i = selectedChannelId ? channelIds.indexOf(selectedChannelId) : 0;
+        if (channels.size === 0) return;
         if (key.upArrow) {
-          setSelectedGroupId(groupIds[rotate(i, groupIds.length, -1)]);
+          setselectedChannelId(channelIds[rotate(i, channelIds.length, -1)]);
         } else if (key.downArrow) {
-          setSelectedGroupId(groupIds[rotate(i, groupIds.length, 1)]);
+          setselectedChannelId(channelIds[rotate(i, channelIds.length, 1)]);
         }
         break;
       }
@@ -133,10 +133,15 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
           borderStyle="single"
           flexDirection="column"
           overflow="hidden"
-          borderColor={selectedBox === "groups" ? selectedBoxColor : undefined}
+          borderColor={
+            selectedBox === "channels" ? selectedBoxColor : undefined
+          }
         >
-          <Text color="#00FFFF">Groups</Text>
-          <GroupList groups={groups} selectedGroupId={selectedGroupId} />
+          <Text color="#00FFFF">Channels</Text>
+          <ChannelList
+            channels={channels}
+            selectedChannelId={selectedChannelId}
+          />
         </Box>
         <Box
           flexGrow={1}
@@ -145,7 +150,7 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
           overflow="hidden"
         >
           <Text color="#00FFFF">Messages</Text>
-          <MessageList groupId={selectedGroupId} limit={terminal.rows} />
+          <MessageList channelId={selectedChannelId} limit={terminal.rows} />
         </Box>
         <Box
           width="30%"
@@ -153,14 +158,14 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
           flexDirection="column"
           overflow="hidden"
         >
-          <Text color="#00FFFF">Group</Text>
-          <Group groupId={selectedGroupId} />
+          <Text color="#00FFFF">Channel</Text>
+          <Channel channelId={selectedChannelId} />
         </Box>
       </Box>
       <CommandInput
         service={service}
         workspaceId={workspaceId}
-        selectedGroupId={selectedGroupId}
+        selectedChannelId={selectedChannelId}
         borderColor={
           selectedBox === "command-input" ? selectedBoxColor : undefined
         }

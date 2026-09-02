@@ -18,7 +18,7 @@ import { identifierColor } from "@/utilities"
 import { Markdown } from "@/components/ui/markdown"
 import { RelativeTime } from "@/components/relative-time"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import type { ZernoGroup, ZernoMessage, ZernoMessageList } from "@/service"
+import type { ZernoChannel, ZernoMessage, ZernoMessageList } from "@/service"
 import {
   Empty,
   EmptyDescription,
@@ -36,15 +36,19 @@ import {
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 
-// MARK: ChatMessageRow
+// MARK: ChannelMessageRow
 
-interface ChatMessageRowProps {
+interface ChannelMessageRowProps {
   message: ZernoMessage
   messageList: DocHandle<ZernoMessageList> | undefined
   isOwn: boolean
 }
 
-function ChatMessageRow({ message, messageList, isOwn }: ChatMessageRowProps) {
+function ChannelMessageRow({
+  message,
+  messageList,
+  isOwn,
+}: ChannelMessageRowProps) {
   const { service } = useAppContext()
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(message.content)
@@ -58,13 +62,13 @@ function ChatMessageRow({ message, messageList, isOwn }: ChatMessageRowProps) {
     if (!messageList) return
     const content = draft.trim()
     if (!content) return
-    service.groups.editMessage({ messageList, id: message.id, content })
+    service.channels.editMessage({ messageList, id: message.id, content })
     setIsEditing(false)
   }
 
   const handleDelete = () => {
     if (!messageList) return
-    service.groups.deleteMessage({ messageList, id: message.id })
+    service.channels.deleteMessage({ messageList, id: message.id })
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -149,9 +153,9 @@ function ChatMessageRow({ message, messageList, isOwn }: ChatMessageRowProps) {
   )
 }
 
-// MARK: ChatMessageRun
+// MARK: ChannelMessageRun
 
-interface ChatMessageRunProps {
+interface ChannelMessageRunProps {
   author: string
   createdAt: number
   messages: ZernoMessage[]
@@ -159,13 +163,13 @@ interface ChatMessageRunProps {
   myId?: string
 }
 
-function ChatMessageRun({
+function ChannelMessageRun({
   author,
   createdAt,
   messages,
   messageListUrl,
   myId,
-}: ChatMessageRunProps) {
+}: ChannelMessageRunProps) {
   const isOwn = author === myId
   const messageList = useDocHandle<ZernoMessageList>(
     isOwn ? messageListUrl : undefined,
@@ -191,7 +195,7 @@ function ChatMessageRun({
         </MessageHeader>
         <BubbleGroup className="gap-1">
           {messages.map((message) => (
-            <ChatMessageRow
+            <ChannelMessageRow
               key={message.id}
               message={message}
               messageList={messageList}
@@ -204,24 +208,26 @@ function ChatMessageRun({
   )
 }
 
-// MARK: ChatMessageList
+// MARK: ChannelMessageList
 
 const NEW_MESSAGE_SOUND_PATH = "/notification.mp3"
 
-export interface ChatMessageListProps {
-  selectedGroup: ZernoGroup
+export interface ChannelMessageListProps {
+  selectedChannel: ZernoChannel
 }
 
-export function ChatMessageList({ selectedGroup }: ChatMessageListProps) {
+export function ChannelMessageList({
+  selectedChannel,
+}: ChannelMessageListProps) {
   const { service } = useAppContext()
   const [myId] = useState(() =>
     uint8ArrayToHex(service.zerno.identity.me().id.toBytes())
   )
 
   const messageListUrls = useMemo(() => {
-    if (!selectedGroup?.messages) return []
-    return Object.values(selectedGroup.messages)
-  }, [selectedGroup.messages])
+    if (!selectedChannel?.messages) return []
+    return Object.values(selectedChannel.messages)
+  }, [selectedChannel.messages])
   const [messageLists] = useDocuments<ZernoMessageList>(messageListUrls, {
     suspense: false,
   })
@@ -235,8 +241,8 @@ export function ChatMessageList({ selectedGroup }: ChatMessageListProps) {
   useNewMessageSound(messages, myId, NEW_MESSAGE_SOUND_PATH)
   useNewMessageTitle(messages, myId)
 
-  const messageRuns = useMemo<ChatMessageRunProps[]>(() => {
-    const runs: ChatMessageRunProps[] = []
+  const messageRuns = useMemo<ChannelMessageRunProps[]>(() => {
+    const runs: ChannelMessageRunProps[] = []
     for (const message of messages) {
       const last = runs[runs.length - 1]
       if (last && last.author === message.author) {
@@ -246,13 +252,13 @@ export function ChatMessageList({ selectedGroup }: ChatMessageListProps) {
           author: message.author,
           createdAt: message.createdAt,
           messages: [message],
-          messageListUrl: selectedGroup.messages[message.author],
+          messageListUrl: selectedChannel.messages[message.author],
           myId,
         })
       }
     }
     return runs
-  }, [messages, selectedGroup.messages, myId])
+  }, [messages, selectedChannel.messages, myId])
 
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -279,7 +285,7 @@ export function ChatMessageList({ selectedGroup }: ChatMessageListProps) {
   return (
     <div className="scrollbar-none flex flex-1 flex-col gap-6 overflow-y-auto p-6">
       {messageRuns.map((run) => (
-        <ChatMessageRun key={run.messages[0].id} {...run} />
+        <ChannelMessageRun key={run.messages[0].id} {...run} />
       ))}
       <div ref={scrollRef}></div>
     </div>

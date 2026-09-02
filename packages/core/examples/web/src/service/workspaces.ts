@@ -1,13 +1,14 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo"
 import { Access } from "zerno-core"
 import type { ContactCard, Zerno } from "zerno-core"
+import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
 
-import type { ZernoGroup } from "./groups.js"
+import type { ZernoChannel } from "./channels.js"
 import type { PhonebookService } from "./phonebook.js"
 
 export interface ZernoWorkspace {
   // TODO: Consider replacing with a map-based set (`Record<AutomergeUrl, true>`) for O(1) lookups
-  groups: AutomergeUrl[]
+  channels: AutomergeUrl[]
 }
 
 export class WorkspaceService {
@@ -19,19 +20,19 @@ export class WorkspaceService {
     this.phonebooks = phonebooks
   }
 
-  async openGroup(args: {
+  async openChannel(args: {
     workspace: DocHandle<ZernoWorkspace>
-    group: DocHandle<ZernoGroup>
+    channel: DocHandle<ZernoChannel>
   }): Promise<void> {
-    if (args.workspace.doc().groups.some((g) => g === args.group.url)) {
-      throw new Error("Group already opened in your workspace")
+    if (args.workspace.doc().channels.some((c) => c === args.channel.url)) {
+      throw new Error("Channel already opened in your workspace")
     }
-    args.workspace.change((d) => d.groups.push(args.group.url))
+    args.workspace.change((d) => d.channels.push(args.channel.url))
   }
 
   async create(): Promise<DocHandle<ZernoWorkspace>> {
     return await this.zerno.documents.create<ZernoWorkspace>({
-      groups: [],
+      channels: [],
     })
   }
 
@@ -43,10 +44,10 @@ export class WorkspaceService {
     return await this.zerno.documents.find<ZernoWorkspace>(id, { signal })
   }
 
-  async createGroup(args: {
+  async createChannel(args: {
     workspace: DocHandle<ZernoWorkspace>
     name: string
-  }): Promise<DocHandle<ZernoGroup>> {
+  }): Promise<DocHandle<ZernoChannel>> {
     // Create phonebook
     const phonebook = await this.phonebooks.create()
 
@@ -57,68 +58,85 @@ export class WorkspaceService {
       contactCard: me.contactCard,
     })
 
-    // Create the group
-    const group = await this.zerno.documents.create<ZernoGroup>({
+    // Create the keyhive group and join it as admin, so the creator can manage
+    // it the same way as the other admins and shows up in the member list
+    const group = await this.zerno.groups.create()
+    await this.zerno.groups.grant({
+      group,
+      contactCard: me.contactCard,
+      access: Access.admin(),
+    })
+
+    // Grant the keyhive group access to the phonebook, so every current and
+    // future member of the group can resolve contact cards
+    await this.zerno.access.grant({
+      id: phonebook.url,
+      member: group,
+      access: Access.read(),
+    })
+
+    // Create the channel document
+    const channel = await this.zerno.documents.create<ZernoChannel>({
       name: args.name,
+      groupId: uint8ArrayToHex(group.groupId.toBytes()),
       phonebookId: phonebook.url,
       messages: {},
     })
 
-    // Add the group to the workspace
-    args.workspace.change((d) => d.groups.push(group.url))
+    // Grant the keyhive group access to the channel document
+    await this.zerno.access.grant({
+      id: channel.url,
+      member: group,
+      access: Access.read(),
+    })
 
-    return group
+    // Flush capability grants immediately so peers get decryption keys ASAP.
+    this.zerno.syncKeyhive()
+
+    // Add the channel to the workspace
+    args.workspace.change((d) => d.channels.push(channel.url))
+
+    return channel
   }
 
-  async editGroup(args: { group: DocHandle<ZernoGroup>; name: string }) {
-    if (!args.name.trim()) throw new Error("Group name cannot be empty")
-    if (args.group.doc().name === args.name) return
-    args.group.change((d) => (d.name = args.name))
+  async editChannel(args: { channel: DocHandle<ZernoChannel>; name: string }) {
+    if (!args.name.trim()) throw new Error("Channel name cannot be empty")
+    if (args.channel.doc().name === args.name) return
+    args.channel.change((d) => (d.name = args.name))
   }
 
-  async closeGroup(args: {
+  async closeChannel(args: {
     workspace: DocHandle<ZernoWorkspace>
-    groupId: AutomergeUrl
+    channelId: AutomergeUrl
   }): Promise<void> {
-    // Remove the group from the workspace
+    // Remove the channel from the workspace
     args.workspace.change((d) => {
-      const index = d.groups.indexOf(args.groupId)
-      if (index !== -1) d.groups.splice(index, 1)
+      const index = d.channels.indexOf(args.channelId)
+      if (index !== -1) d.channels.splice(index, 1)
     })
   }
 
-  async grantGroup(args: {
-    group: DocHandle<ZernoGroup>
+  async grantChannel(args: {
+    channel: DocHandle<ZernoChannel>
     contactCard: ContactCard
     access: Access
   }) {
-    const phonebookId = args.group.doc().phonebookId
+    const phonebookId = args.channel.doc().phonebookId
     await this.phonebooks.add({
       phonebookId,
       contactCard: args.contactCard,
     })
 
-    // Grant access to the group
-    await this.zerno.access.grant({
-      id: args.group.url,
+    // Membership in the keyhive group grants access to all of the channel's
+    // documents, including the ones created later
+    const group = await this.zerno.groups.find(args.channel.doc().groupId)
+    await this.zerno.groups.grant({
+      group,
       contactCard: args.contactCard,
       access: args.access,
     })
 
-    // Grant access to the phonebook of the group
-    await this.zerno.access.grant({
-      id: phonebookId,
-      contactCard: args.contactCard,
-      access: args.access,
-    })
-
-    // Grant access to all message lists of the group
-    for (const messageList of Object.values(args.group.doc().messages)) {
-      await this.zerno.access.grant({
-        id: messageList,
-        contactCard: args.contactCard,
-        access: args.access,
-      })
-    }
+    // Flush capability grants immediately so peers get decryption keys ASAP.
+    this.zerno.syncKeyhive()
   }
 }

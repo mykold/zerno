@@ -6,7 +6,7 @@ import { useDocument, useDocuments } from "zerno-react";
 import type {
   ZernoMessage,
   ZernoMessageList,
-  ZernoGroup,
+  ZernoChannel,
 } from "../service/index.js";
 import { identifierColor, shrinkIdentifier } from "../utilities.js";
 import { useMessages } from "../hooks/use-messages.js";
@@ -45,22 +45,22 @@ export function MessageItem({ author, item }: MessageItemProps) {
 // MARK: MessageList
 
 export interface MessageListProps {
-  groupId: AutomergeUrl | undefined;
+  channelId: AutomergeUrl | undefined;
   // TODO: Should we have `limit`? Anyway `useMessages` hook computes every message
   // and `limit` param only limites visually
   limit: number;
 }
 
 export function MessageList({
-  groupId,
+  channelId,
   limit,
 }: MessageListProps): React.JSX.Element {
-  const [group] = useDocument<ZernoGroup>(groupId);
+  const [channel] = useDocument<ZernoChannel>(channelId);
 
   const messageListUrls = useMemo(() => {
-    if (!group?.messages) return [];
-    return Object.values(group.messages);
-  }, [group?.messages]);
+    if (!channel?.messages) return [];
+    return Object.values(channel.messages);
+  }, [channel?.messages]);
 
   const [messageLists] = useDocuments<ZernoMessageList>(messageListUrls, {
     suspense: false,
@@ -71,7 +71,7 @@ export function MessageList({
     order: "desc",
   });
 
-  if (!group) {
+  if (!channel) {
     return (
       <Box flexGrow={1} justifyContent="center" alignItems="center">
         <Text dimColor>No messages</Text>

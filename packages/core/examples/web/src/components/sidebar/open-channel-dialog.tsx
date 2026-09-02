@@ -1,7 +1,9 @@
 import { useState } from "react"
-import { useNavigate } from "react-router"
+import { toast } from "sonner"
 import { ArrowRightIcon, Loader2Icon } from "lucide-react"
+import type { AutomergeUrl } from "@automerge/automerge-repo"
 
+import { useAppContext } from "@/app-context"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,65 +15,64 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { useAppContext } from "@/app-context"
 
-export interface CreateGroupDialogProps {
+export interface OpenChannelDialogProps {
   children: React.ReactNode
 }
 
-export function CreateGroupDialog({ children }: CreateGroupDialogProps) {
-  const navigate = useNavigate()
+export function OpenChannelDialog({ children }: OpenChannelDialogProps) {
   const { workspace, service } = useAppContext()
 
-  const [name, setName] = useState("")
+  const [url, setUrl] = useState("")
   const [isOpen, setIsOpen] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
+  const [isOpening, setIsOpening] = useState(false)
 
-  const handleCreateGroup = async (e: React.FormEvent) => {
+  const handleOpenChannel = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const trimmedName = name.trim()
-    if (!trimmedName || isCreating) return
+    if (!url.trim() || isOpening) return
 
-    setIsCreating(true)
+    setIsOpening(true)
     try {
-      const handle = await service.workspaces.createGroup({
+      const channel = await service.channels.find(url.trim() as AutomergeUrl)
+      await service.workspaces.openChannel({
         workspace,
-        name: trimmedName,
+        channel,
       })
 
       setIsOpen(false)
-      setName("")
-      navigate(`/groups/${handle.url}`)
-    } catch (error) {
-      console.error("Failed to create group:", error)
+      setUrl("")
+      toast.success("Channel opened successfully")
+    } catch (e) {
+      const message = (e as Error).message
+      toast.error(message)
     } finally {
-      setIsCreating(false)
+      setIsOpening(false)
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
         <div className="p-6 pb-4">
           <DialogHeader>
-            <DialogTitle>Create group</DialogTitle>
-            <DialogDescription>Choose a name for the group</DialogDescription>
+            <DialogTitle>Open channel</DialogTitle>
+            <DialogDescription>
+              Paste the URL that another user gave you here
+            </DialogDescription>
           </DialogHeader>
         </div>
-
-        <form onSubmit={handleCreateGroup} className="px-6 pb-6">
+        <form onSubmit={handleOpenChannel} className="px-6 pb-6">
           <div className="relative">
-            <Label htmlFor="name" className="sr-only">
-              Name
+            <Label htmlFor="url" className="sr-only">
+              URL
             </Label>
             <Input
-              id="name"
-              placeholder="General"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              id="url"
+              placeholder="automerge:2WN9h4Y3GDtdSJHWqvXozDYjSqrBHrhBxMkJBudaHbvDfU3WT3"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
               className="pr-10"
               autoFocus
               autoComplete="off"
@@ -80,10 +81,10 @@ export function CreateGroupDialog({ children }: CreateGroupDialogProps) {
               type="submit"
               size="icon"
               variant="ghost"
-              disabled={!name.trim() || isCreating}
+              disabled={!url.trim() || isOpening}
               className="absolute top-1 right-1 h-7 w-7 text-muted-foreground hover:bg-transparent hover:text-foreground"
             >
-              {isCreating ? (
+              {isOpening ? (
                 <Loader2Icon className="h-4 w-4 animate-spin" />
               ) : (
                 <ArrowRightIcon className="h-4 w-4" />

@@ -4,43 +4,53 @@ import type { Zerno } from "zerno-core"
 import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
 
 import type { ZernoMessageList } from "./messages.js"
-import type { PhonebookService } from "./phonebook.js"
 
-export interface ZernoGroup {
+export interface ZernoChannel {
   name: string
+  groupId: string /* Keyhive GroupId */
   phonebookId: AutomergeUrl
   messages: Record<string /* Identifier */, AutomergeUrl /* ZernoMessageList */>
 }
 
-export class GroupService {
+export class ChannelService {
   private readonly zerno: Zerno
-  private readonly phonebooks: PhonebookService
 
-  constructor(zerno: Zerno, phonebooks: PhonebookService) {
+  constructor(zerno: Zerno) {
     this.zerno = zerno
-    this.phonebooks = phonebooks
   }
 
   async find(
-    groupId: AutomergeUrl,
+    channelId: AutomergeUrl,
     timeout: number = 60_000 /* ms */
-  ): Promise<DocHandle<ZernoGroup>> {
+  ): Promise<DocHandle<ZernoChannel>> {
     // documents.find retries internally while the document is unavailable
     // (e.g. keyhive capability grants still in flight).
-    return await this.zerno.documents.find<ZernoGroup>(groupId, {
+    return await this.zerno.documents.find<ZernoChannel>(channelId, {
       signal: AbortSignal.timeout(timeout),
     })
   }
 
-  async sendMessage(args: { group: DocHandle<ZernoGroup>; content: string }) {
+  async sendMessage(args: {
+    channel: DocHandle<ZernoChannel>
+    content: string
+  }) {
     const author = uint8ArrayToHex(this.zerno.identity.me().id.toBytes())
 
     let messageList: DocHandle<ZernoMessageList>
 
-    const messageListId = args.group.doc().messages[author]
+    const messageListId = args.channel.doc().messages[author]
     if (!messageListId) {
       messageList = await this.zerno.documents.create<ZernoMessageList>({
         messages: [],
+      })
+
+      // Members of the keyhive group get access to the new message list,
+      // including the ones that join later
+      const group = await this.zerno.groups.find(args.channel.doc().groupId)
+      await this.zerno.access.grant({
+        id: messageList.url,
+        member: group,
+        access: Access.read(),
       })
     } else {
       messageList =
@@ -56,36 +66,11 @@ export class GroupService {
       })
     )
 
-    const members = await this.zerno.access.members(args.group.url)
-    for (const member of members) {
-      if (member.isSyncServer) continue
-      if (member.id === author) continue
-
-      // Skip if the member already has access
-      const hasAccess = await this.zerno.access.hasAtLeast({
-        id: messageList.url,
-        member: member.id,
-        access: Access.read(),
-      })
-      if (hasAccess) continue
-
-      const contactCard = await this.phonebooks.resolve({
-        phonebookId: args.group.doc().phonebookId,
-        identifier: member.id,
-      })
-
-      await this.zerno.access.grant({
-        id: messageList.url,
-        contactCard,
-        access: Access.read(),
-      })
-    }
-
     // Flush capability grants immediately so peers get decryption keys ASAP.
     this.zerno.syncKeyhive()
 
-    if (!args.group.doc().messages[author]) {
-      args.group.change((d) => (d.messages[author] = messageList.url))
+    if (!args.channel.doc().messages[author]) {
+      args.channel.change((d) => (d.messages[author] = messageList.url))
     }
   }
 

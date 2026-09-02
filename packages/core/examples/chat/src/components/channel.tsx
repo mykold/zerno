@@ -3,28 +3,28 @@ import { Box, Text } from "ink";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument, useMembers } from "zerno-react";
 
-import type { ZernoGroup } from "../service/index.js";
+import type { ZernoChannel } from "../service/index.js";
 import { shrinkIdentifier, identifierColor } from "../utilities.js";
 
-export interface GroupProps {
-  groupId: AutomergeUrl | undefined;
+export interface ChannelProps {
+  channelId: AutomergeUrl | undefined;
 }
 
-export function Group({ groupId }: GroupProps): React.JSX.Element {
-  const [group] = useDocument<ZernoGroup>(groupId);
-  const members = useMembers(groupId) ?? [];
+export function Channel({ channelId }: ChannelProps): React.JSX.Element {
+  const [channel] = useDocument<ZernoChannel>(channelId);
+  const members = useMembers(channelId) ?? [];
 
-  if (!groupId) {
+  if (!channelId) {
     return (
       <Box flexGrow={1} justifyContent="center" alignItems="center">
-        <Text dimColor>Select a group to view info</Text>
+        <Text dimColor>Select a channel to view info</Text>
       </Box>
     );
   }
-  if (!group) {
+  if (!channel) {
     return (
       <Box flexGrow={1} justifyContent="center" alignItems="center">
-        <Text dimColor>Group is loading...</Text>
+        <Text dimColor>channel is loading...</Text>
       </Box>
     );
   }
@@ -32,7 +32,7 @@ export function Group({ groupId }: GroupProps): React.JSX.Element {
   return (
     <Box flexDirection="column" gap={1} paddingX={1}>
       <Box flexDirection="row" justifyContent="space-between">
-        <Text color="#FFFFFF">{group.name}</Text>
+        <Text color="#FFFFFF">{channel.name}</Text>
         <Text dimColor>
           {members.length} {members.length === 1 ? "member" : "members"}
         </Text>
@@ -40,9 +40,9 @@ export function Group({ groupId }: GroupProps): React.JSX.Element {
       <Box flexDirection="column">
         <Text dimColor>url</Text>
         <Text color="yellow">
-          {shrinkIdentifier(groupId.slice("automerge:".length), 10, 6)}
+          {shrinkIdentifier(channelId.slice("automerge:".length), 10, 6)}
         </Text>
-        <Text dimColor>{"\\>"} use /copy group-url</Text>
+        <Text dimColor>{"\\>"} use /copy channel-url</Text>
       </Box>
       <Box flexDirection="column">
         <Text dimColor>members</Text>

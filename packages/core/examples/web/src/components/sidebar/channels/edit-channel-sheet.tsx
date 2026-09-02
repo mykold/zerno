@@ -14,26 +14,30 @@ import {
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import type { ZernoGroup } from "@/service"
+import type { ZernoChannel } from "@/service"
 import { useAppContext } from "@/app-context"
 
-export interface EditGroupSheetProps {
+export interface EditChannelSheetProps {
   url: AutomergeUrl
   open: boolean
   setOpen: (v: boolean) => void
 }
 
-export function EditGroupSheet({ url, open, setOpen }: EditGroupSheetProps) {
+export function EditChannelSheet({
+  url,
+  open,
+  setOpen,
+}: EditChannelSheetProps) {
   const { service } = useAppContext()
 
-  const group = useDocHandle<ZernoGroup>(url, { suspense: true })
-  const groupName = useDocumentSelector(group, (g) => g.name)
+  const channel = useDocHandle<ZernoChannel>(url, { suspense: true })
+  const channelName = useDocumentSelector(channel, (c) => c.name)
 
-  const [name, setName] = useState(groupName)
-  const handleGroupEdit = async () => {
+  const [name, setName] = useState(channelName)
+  const handleChannelEdit = async () => {
     try {
-      await service.workspaces.editGroup({
-        group,
+      await service.workspaces.editChannel({
+        channel,
         name,
       })
     } catch (e) {
@@ -41,7 +45,7 @@ export function EditGroupSheet({ url, open, setOpen }: EditGroupSheetProps) {
       toast.error(message)
       return
     }
-    toast.success("Group successfully updated")
+    toast.success("Channel successfully updated")
     setOpen(false)
   }
 
@@ -49,21 +53,21 @@ export function EditGroupSheet({ url, open, setOpen }: EditGroupSheetProps) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent showCloseButton={false}>
         <SheetHeader>
-          <SheetTitle>Edit group name</SheetTitle>
+          <SheetTitle>Edit channel name</SheetTitle>
           <SheetDescription>Click outside to close.</SheetDescription>
         </SheetHeader>
         <div className="grid flex-1 auto-rows-min gap-6 px-4">
           <div className="grid gap-3">
-            <Label htmlFor="group-name">Name</Label>
+            <Label htmlFor="channel-name">Name</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={groupName}
+              placeholder={channelName}
             />
           </div>
         </div>
         <SheetFooter>
-          <Button onClick={handleGroupEdit}>Save changes</Button>
+          <Button onClick={handleChannelEdit}>Save changes</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

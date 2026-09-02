@@ -20,30 +20,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { ZernoGroup } from "@/service"
-import { EditGroupSheet } from "./edit-group-sheet"
-import { GrantGroupSheet } from "./grant-group-sheet"
+import type { ZernoChannel } from "@/service"
+import { EditChannelSheet } from "./edit-channel-sheet"
+import { GrantChannelSheet } from "./grant-channel-sheet"
 import { Separator } from "@/components/ui/separator"
 
-export interface GroupProps {
+export interface ChannelProps {
   url: AutomergeUrl
   isSelected: boolean
-  onGroupSelect: () => void
-  onGroupCopyUrl: () => void
-  onGroupClose: () => void
+  onChannelSelect: () => void
+  onChannelCopyUrl: () => void
+  onChannelClose: () => void
 }
 
-export function Group({
+export function Channel({
   url,
   isSelected,
-  onGroupSelect,
-  onGroupCopyUrl,
-  onGroupClose,
-}: GroupProps) {
-  const [group] = useDocument<ZernoGroup>(url, { suspense: true })
+  onChannelSelect,
+  onChannelCopyUrl,
+  onChannelClose,
+}: ChannelProps) {
+  const [channel] = useDocument<ZernoChannel>(url, { suspense: true })
 
-  const [isGroupGranting, setIsGroupGranting] = useState(false)
-  const [isGroupEditing, setIsGroupEditing] = useState(false)
+  const [isChannelGranting, setIsChannelGranting] = useState(false)
+  const [isChannelEditing, setIsChannelEditing] = useState(false)
 
   return (
     <>
@@ -51,9 +51,9 @@ export function Group({
         <SidebarMenuButton
           isActive={isSelected}
           className="group-hover/item:bg-sidebar-accent group-hover/item:text-sidebar-accent-foreground group-has-data-[state=open]/item:bg-sidebar-accent group-has-data-[state=open]/item:text-sidebar-accent-foreground"
-          onClick={onGroupSelect}
+          onClick={onChannelSelect}
         >
-          {group.name}
+          {channel.name}
         </SidebarMenuButton>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -62,24 +62,24 @@ export function Group({
             </SidebarMenuAction>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="bottom" align="start" className="w-50 p-2">
-            <DropdownMenuItem onClick={onGroupCopyUrl}>
+            <DropdownMenuItem onClick={onChannelCopyUrl}>
               <CopyIcon />
               Copy URL
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => setIsGroupGranting(true)}
+              onClick={() => setIsChannelGranting(true)}
               className="text-blue-400"
             >
               <ShareIcon className="text-blue-400" />
               Grant access
             </DropdownMenuItem>
             <Separator className="mt-2 mb-2" />
-            <DropdownMenuItem onClick={() => setIsGroupEditing(true)}>
+            <DropdownMenuItem onClick={() => setIsChannelEditing(true)}>
               <EditIcon />
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={onGroupClose}
+              onClick={onChannelClose}
               className="text-destructive"
             >
               <TrashIcon className="text-destructive" />
@@ -88,15 +88,15 @@ export function Group({
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
-      <GrantGroupSheet
+      <GrantChannelSheet
         url={url}
-        open={isGroupGranting}
-        setOpen={setIsGroupGranting}
+        open={isChannelGranting}
+        setOpen={setIsChannelGranting}
       />
-      <EditGroupSheet
+      <EditChannelSheet
         url={url}
-        open={isGroupEditing}
-        setOpen={setIsGroupEditing}
+        open={isChannelEditing}
+        setOpen={setIsChannelEditing}
       />
     </>
   )

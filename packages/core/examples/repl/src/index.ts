@@ -245,7 +245,7 @@ interface ZernoDocument {
             try {
               await zerno.access.grant({
                 id: handle.url,
-                contactCard: decodedContactCard,
+                member: decodedContactCard,
                 access: access,
               });
             } catch (err) {

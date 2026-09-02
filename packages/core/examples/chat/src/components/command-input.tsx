@@ -9,7 +9,11 @@ import { useDocHandle } from "zerno-react";
 
 import { useToast } from "../hooks/use-toast.js";
 import type { ToastContextValue } from "../hooks/use-toast.js";
-import type { Service, ZernoGroup, ZernoWorkspace } from "../service/index.js";
+import type {
+  Service,
+  ZernoChannel,
+  ZernoWorkspace,
+} from "../service/index.js";
 
 // MARK: ArgumentParser
 
@@ -38,7 +42,7 @@ type ArgumentParser = ReturnType<typeof createArgumentParser>;
 export interface CommandInputProps {
   service: Service;
   workspaceId: AutomergeUrl;
-  selectedGroupId: AutomergeUrl | undefined;
+  selectedChannelId: AutomergeUrl | undefined;
   borderColor: string | undefined;
   disabled: boolean;
 }
@@ -46,44 +50,44 @@ export interface CommandInputProps {
 interface CreateCommandsProps {
   service: Service;
   workspace: DocHandle<ZernoWorkspace>;
-  selectedGroup: DocHandle<ZernoGroup> | undefined;
+  selectedChannel: DocHandle<ZernoChannel> | undefined;
   sendToast: ToastContextValue["sendToast"];
 }
 
 function createCommands({
   service,
   workspace,
-  selectedGroup,
+  selectedChannel,
   sendToast,
 }: CreateCommandsProps) {
-  async function newGroup(args: ArgumentParser): Promise<void> {
+  async function newChannel(args: ArgumentParser): Promise<void> {
     const name = args.rest();
-    if (name.length === 0) throw new Error("Group name cannot be empty");
+    if (name.length === 0) throw new Error("Channel name cannot be empty");
 
-    await service.workspaces.createGroup({ workspace, name });
-    sendToast("success", "Group successfully created");
+    await service.workspaces.createChannel({ workspace, name });
+    sendToast("success", "Channel successfully created");
   }
 
-  async function openGroup(args: ArgumentParser): Promise<void> {
+  async function openChannel(args: ArgumentParser): Promise<void> {
     const id = args.next() as AutomergeUrl;
     if (!id) throw new Error("Id cannot be empty");
 
-    sendToast("info", `Opening group '${id}'`);
-    const group = await service.groups.find(id);
+    sendToast("info", `Opening channel '${id}'`);
+    const channel = await service.channels.find(id);
 
-    await service.workspaces.openGroup({ workspace, group });
-    sendToast("success", "Group successfully opened");
+    await service.workspaces.openChannel({ workspace, channel });
+    sendToast("success", "Channel successfully opened");
   }
 
-  async function closeGroup(_: ArgumentParser): Promise<void> {
-    if (!selectedGroup) throw new Error("Group is not selected");
+  async function closeChannel(_: ArgumentParser): Promise<void> {
+    if (!selectedChannel) throw new Error("Channel is not selected");
 
-    await service.workspaces.closeGroup({
+    await service.workspaces.closeChannel({
       workspace,
-      groupId: selectedGroup.url,
+      channelId: selectedChannel.url,
     });
 
-    sendToast("success", "Group successfully closed");
+    sendToast("success", "Channel successfully closed");
   }
 
   async function copyContactCardOrGroupUrl(
@@ -97,8 +101,8 @@ function createCommands({
         break;
       }
       case "group-url": {
-        if (!selectedGroup) throw new Error("Group is not selected");
-        const text = selectedGroup.url.slice("automerge:".length);
+        if (!selectedChannel) throw new Error("Channel is not selected");
+        const text = selectedChannel.url.slice("automerge:".length);
         clipboard.writeSync(text);
         sendToast("success", "Group url copied to clipboard");
         break;
@@ -111,14 +115,14 @@ function createCommands({
     }
   }
 
-  async function grantGroup(args: ArgumentParser): Promise<void> {
-    if (!selectedGroup) throw new Error("Group is not selected");
+  async function grantChannel(args: ArgumentParser): Promise<void> {
+    if (!selectedChannel) throw new Error("Channel is not selected");
 
     const access = args.next(Access.fromString);
     const contactCard = args.next(decodeContactCard);
 
-    await service.workspaces.grantGroup({
-      group: selectedGroup,
+    await service.workspaces.grantChannel({
+      channel: selectedChannel,
       contactCard,
       access,
     });
@@ -126,21 +130,21 @@ function createCommands({
   }
 
   async function sendMessage(args: ArgumentParser): Promise<void> {
-    if (!selectedGroup) throw new Error("Group is not selected");
+    if (!selectedChannel) throw new Error("Channel is not selected");
     if (args.value.length === 0) throw new Error("Message cannot be empty");
 
-    await service.groups.sendMessage({
-      group: selectedGroup,
+    await service.channels.sendMessage({
+      channel: selectedChannel,
       content: args.value,
     });
   }
 
   return {
-    newGroup,
-    openGroup,
-    closeGroup,
+    newChannel,
+    openChannel,
+    closeChannel,
     copyContactCardOrGroupUrl,
-    grantGroup,
+    grantChannel,
     sendMessage,
   };
 }
@@ -148,7 +152,7 @@ function createCommands({
 export function CommandInput({
   service,
   workspaceId,
-  selectedGroupId,
+  selectedChannelId,
   disabled,
   borderColor,
 }: CommandInputProps): React.JSX.Element {
@@ -157,17 +161,17 @@ export function CommandInput({
   const workspace = useDocHandle<ZernoWorkspace>(workspaceId, {
     suspense: true,
   });
-  const selectedGroup = useDocHandle<ZernoGroup>(selectedGroupId);
+  const selectedChannel = useDocHandle<ZernoChannel>(selectedChannelId);
 
   const commands = useMemo(
     () =>
       createCommands({
         service,
         workspace,
-        selectedGroup,
+        selectedChannel,
         sendToast,
       }),
-    [service, workspace, selectedGroup, sendToast],
+    [service, workspace, selectedChannel, sendToast],
   );
 
   const [value, setValue] = useState("");
@@ -188,11 +192,11 @@ export function CommandInput({
     }
 
     const handler = {
-      "/new": commands.newGroup,
-      "/open": commands.openGroup,
-      "/close": commands.closeGroup,
+      "/new": commands.newChannel,
+      "/open": commands.openChannel,
+      "/close": commands.closeChannel,
       "/copy": commands.copyContactCardOrGroupUrl,
-      "/grant": commands.grantGroup,
+      "/grant": commands.grantChannel,
     }[args.next()];
     if (!handler) {
       sendToast("error", "Invalid command");

@@ -4,45 +4,45 @@ import { toast } from "sonner"
 
 import { SidebarMenu, SidebarGroup } from "@/components/ui/sidebar"
 import { useAppContext } from "@/app-context"
-import { useSelectedGroupUrl } from "@/hooks/use-selected-group-url"
-import { Group } from "./group"
+import { useSelectedChannelUrl } from "@/hooks/use-selected-channel-url"
+import { Channel } from "./channel"
 
-export interface GroupsProps {
+export interface ChannelsProps {
   urls: AutomergeUrl[]
 }
 
-export function Groups({ urls }: GroupsProps) {
+export function Channels({ urls }: ChannelsProps) {
   const navigate = useNavigate()
 
   const { workspace, service } = useAppContext()
-  const selectedGroupUrl = useSelectedGroupUrl()
+  const selectedChannelUrl = useSelectedChannelUrl()
 
   return (
     <>
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarMenu>
           {urls.map((url) => {
-            const onGroupSelect = () => navigate(`/groups/${url}`)
-            const onGroupCopyUrl = () => {
+            const onChannelSelect = () => navigate(`/channels/${url}`)
+            const onChannelCopyUrl = () => {
               navigator.clipboard.writeText(url)
               toast.success("Copied to clipboard")
             }
-            const onGroupClose = async () => {
-              await service.workspaces.closeGroup({
+            const onChannelClose = async () => {
+              await service.workspaces.closeChannel({
                 workspace,
-                groupId: url,
+                channelId: url,
               })
-              if (selectedGroupUrl === url) navigate("/")
+              if (selectedChannelUrl === url) navigate("/")
             }
 
             return (
-              <Group
+              <Channel
                 key={url}
                 url={url}
-                isSelected={selectedGroupUrl === url}
-                onGroupSelect={onGroupSelect}
-                onGroupCopyUrl={onGroupCopyUrl}
-                onGroupClose={onGroupClose}
+                isSelected={selectedChannelUrl === url}
+                onChannelSelect={onChannelSelect}
+                onChannelCopyUrl={onChannelCopyUrl}
+                onChannelClose={onChannelClose}
               />
             )
           })}
