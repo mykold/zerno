@@ -4,12 +4,14 @@ An experimental adapter over [`@automerge/automerge-repo`](https://github.com/au
 
 ## Installation
 
-```
+```bash
 pnpm install
 ```
 
 ## Usage
 
-- [`zerno-core`](./packages/core) is core library that provides the main Zerno functionality. It builds on top of Automerge Repo and Keyhive, adding identity management, document handling, and access control with cryptographic permissions.
+- [`zerno-core`](./packages/core) is the core library that provides the main Zerno functionality. It builds on top of Automerge Repo and Keyhive, adding identity management, document handling, and access control with cryptographic permissions.
 
-- [`zerno-react`](./packages/react) are React bindings for `zerno-core`. It provides React components and hooks for accessing the Zerno instance, observing documents, handling synchronization progress, and building reactive local-first applications.
+- [`zerno-react`](./packages/react) provides React bindings for `zerno-core`. It provides React components and hooks for accessing the Zerno instance, observing documents, handling synchronization progress, and building reactive local-first applications.
+
+Examples of using [`zerno-core`](./packages/core) and [`zerno-react`](./packages/react) are available in [`packages/core/examples`](./packages/core/examples/). See the [examples section](./packages/core/README.md#examples) for more details.
