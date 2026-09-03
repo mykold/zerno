@@ -1,19 +1,52 @@
 import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js"
 
-export function formatRelativeTime(
-  timestamp: number,
-  ago: boolean = false
-): string {
-  if (ago) {
-    const result = formatRelativeTime(timestamp)
-    return result === "now" ? "just now" : `${result} ago`
-  }
-  const seconds = Math.floor((Date.now() - timestamp) / 1000)
-  if (seconds < 60) return "now"
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-  if (seconds < 86400) return `${Math.floor(seconds / 3_600)}h`
-  return `${Math.floor(seconds / 86_400)}d`
+// MARK: formatMessageTimestamp
+
+const formats = {
+  time: new Intl.DateTimeFormat("en", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }),
+  weekday: new Intl.DateTimeFormat("en", { weekday: "long" }),
+  day: new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+  }),
+  dayYear: new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }),
 }
+
+function dayDiff(timestamp: number): number {
+  const startOfDay = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+  return Math.round(
+    (startOfDay(new Date()) - startOfDay(new Date(timestamp))) / 86_400_000
+  )
+}
+
+export function formatDay(timestamp: number): string {
+  const days = dayDiff(timestamp)
+  if (days <= 0) return "Today"
+  if (days === 1) return "Yesterday"
+  if (days < 7) return formats.weekday.format(timestamp)
+  if (new Date(timestamp).getFullYear() === new Date().getFullYear())
+    return formats.day.format(timestamp)
+  return formats.dayYear.format(timestamp)
+}
+
+export function formatMessageTimestamp(timestamp: number): {
+  date?: string
+  time: string
+} {
+  if (dayDiff(timestamp) <= 0) return { time: formats.time.format(timestamp) }
+  return { date: formatDay(timestamp), time: formats.time.format(timestamp) }
+}
+
+// MARK: shrinkIdentifier
 
 export function shrinkIdentifier(
   identifier: string,
@@ -31,7 +64,9 @@ export function shrinkIdentifier(
   )
 }
 
-export function identifierColor(identifier: string): string {
+// MARK: identifierColor
+
+export function identifierColor(identifier: string, dimColor = false): string {
   const bytes = hexToUint8Array(identifier)
 
   let hash = 2166136261
@@ -43,10 +78,10 @@ export function identifierColor(identifier: string): string {
 
   const hue = (hash >>> 0) % 360
 
-  return hslToHex(hue, 65, 55)
+  return hslToHex(hue, 65, dimColor ? 40 : 55)
 }
 
-export function hslToHex(h: number, s: number, l: number): string {
+function hslToHex(h: number, s: number, l: number): string {
   s /= 100
   l /= 100
 
