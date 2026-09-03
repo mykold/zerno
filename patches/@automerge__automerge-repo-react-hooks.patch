@@ -1,13 +1,46 @@
 diff --git a/dist/index.js b/dist/index.js
-index ac9a2b8df686e78e022736a34ca3506e645c26c9..b5fa0e7229e19bc3513395bdf4cac7e597dbe143 100644
+index ac9a2b8df686e78e022736a34ca3506e645c26c9..f03b91c9954c32c16956333398f41e1d5f39b334 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -1490,7 +1490,16 @@ function useDocHandles(ids, { suspense = false } = {}) {
+@@ -1457,6 +1457,8 @@ function identical(s1, s2) {
+ }
+ //#endregion
+ //#region src/useDocHandles.ts
++/** How long a pending `Repo.find` may hang before its wrapper is dropped. */
++const FIND_TIMEOUT_MS = 15_000;
+ function useDocHandles(ids, { suspense = false } = {}) {
+ 	const idSet = useSet(ids);
+ 	const repo = useRepo();
+@@ -1475,9 +1477,19 @@ function useDocHandles(ids, { suspense = false } = {}) {
+ 		return map;
+ 	});
+ 	const pendingPromises = [];
++	const pendingEntries = [];
+ 	const nextHandleMap = /* @__PURE__ */ new Map();
+ 	for (const id of idSet.values()) {
+ 		let handle = handleMap.get(id);
++		// A wrapper that resolved before a transient "unavailable" holds a
++		// handle the repo has since evicted and rebound; the orphaned handle
++		// never fires "change" again. Prefer the live handle from the repo.
++		try {
++			const state = repo.findWithProgress(id).peek();
++			if (state.state === "ready" && state.handle !== handle) handle = state.handle;
++		} catch (e) {
++			// No query yet so the wrapper below starts one.
++		}
+ 		let wrapper = wrapperCache.get(id);
+ 		if (!wrapper) try {
+ 			wrapper = wrapPromise(repo.find(id));
+@@ -1489,27 +1501,83 @@ function useDocHandles(ids, { suspense = false } = {}) {
+ 			handle ??= wrapper.read();
  			nextHandleMap.set(id, handle);
  		} catch (e) {
- 			if (e instanceof Promise) pendingPromises.push(wrapper);
+-			if (e instanceof Promise) pendingPromises.push(wrapper);
 -			else nextHandleMap.set(id, void 0);
-+			else {
++			if (e instanceof Promise) {
++				pendingPromises.push(wrapper);
++				pendingEntries.push({ id, wrapper });
++			} else {
 +				// A settled-rejected wrapper is dead: its promise rejected once
 +				// (e.g. the document was "unavailable" because decryption keys
 +				// had not arrived yet) and `read()` will keep throwing forever.
@@ -17,6 +50,79 @@ index ac9a2b8df686e78e022736a34ca3506e645c26c9..b5fa0e7229e19bc3513395bdf4cac7e5
 +				wrapperCache.delete(id);
 +				nextHandleMap.set(id, void 0);
 +			}
++		}
++	}
++	// Detect handles that changed (e.g. after a query rebound) so the effect
++	// below commits the fresh map; comparing avoids redundant commits.
++	let handlesChanged = handleMap.size !== nextHandleMap.size;
++	if (!handlesChanged) {
++		for (const [id, handle] of nextHandleMap) {
++			if (handleMap.get(id) !== handle) {
++				handlesChanged = true;
++				break;
++			}
  		}
  	}
  	useEffect(() => {
+ 		let active = true;
+-		if (pendingPromises.length > 0) Promise.allSettled(pendingPromises.map((p) => p.promise)).then((handles) => {
+-			if (!active) return;
+-			handles.forEach((r) => {
+-				if (r.status === "fulfilled") {
+-					const h = r.value;
+-					nextHandleMap.set(h.url, h);
++		let timer;
++		// Drop handles for ids that left the set (e.g. after a channel
++		// switch), so the previous channel's documents stop rendering.
++		setHandleMap((prev) => {
++			let changed = false;
++			const next = /* @__PURE__ */ new Map();
++			for (const [id, handle] of prev) {
++				if (idSet.has(id)) next.set(id, handle);
++				else changed = true;
++			}
++			return changed ? next : prev;
++		});
++		if (pendingPromises.length > 0) {
++			// A find can hang forever while the connection flaps (e.g. waiting
++			// for relay data). Drop its wrapper after a timeout so the next
++			// render re-finds it instead of freezing the map.
++			timer = setTimeout(() => {
++				for (const { id, wrapper } of pendingEntries) {
++					if (wrapperCache.get(id) === wrapper) wrapperCache.delete(id);
+ 				}
++				setHandleMap((prev) => new Map(prev));
++			}, FIND_TIMEOUT_MS);
++			Promise.allSettled(pendingPromises.map((p) => p.promise)).then((results) => {
++				if (!active) return;
++				clearTimeout(timer);
++				// Rebuild from the latest state and this render's view instead
++				// of the map captured at effect time, pruned to the current ids.
++				setHandleMap((prev) => {
++					const next = /* @__PURE__ */ new Map();
++					for (const [id, handle] of prev) {
++						if (idSet.has(id)) next.set(id, handle);
++					}
++					for (const [id, handle] of nextHandleMap) {
++						next.set(id, handle);
++					}
++					results.forEach((r, i) => {
++						if (r.status === "fulfilled") next.set(pendingEntries[i].id, r.value);
++					});
++					return next;
++				});
+ 			});
++		} else {
+ 			setHandleMap(nextHandleMap);
+-		});
+-		else setHandleMap(nextHandleMap);
++		}
+ 		return () => {
+ 			active = false;
++			if (timer) clearTimeout(timer);
+ 		};
+-	}, [suspense, idSet]);
++	}, [suspense, idSet, handlesChanged]);
+ 	if (suspense && pendingPromises.length > 0) throw Promise.all(pendingPromises.map((p) => p.promise));
+ 	return handleMap;
+ }

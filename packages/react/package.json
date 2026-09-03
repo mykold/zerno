@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@automerge/automerge-repo": "catalog:",
+    "@automerge/automerge-repo-keyhive": "catalog:",
     "@automerge/react": "catalog:",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.5",
@@ -36,6 +37,7 @@
     "zerno-core": "workspace:*"
   },
   "dependencies": {
-    "@automerge/automerge": "catalog:"
+    "@automerge/automerge": "catalog:",
+    "@automerge/keyhive-react": "catalog:"
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useKeyhiveUpdates } from "@automerge/keyhive-react";
 import {
   useRepo,
   useDocument as automergeUseDocument,
@@ -173,18 +174,7 @@ export function useDocuments<T>(
   ids: AutomergeUrl[],
   options?: UseDocumentsOptions,
 ) {
-  const repo = useRepo();
-  const [, forceRender] = useState({});
   useRetryUnavailableDocs(ids);
-
-  useEffect(() => {
-    const subscriptions = ids.map((id) => {
-      const query = repo.findWithProgress(id);
-      return query.subscribe(() => forceRender({}));
-    });
-
-    return () => void subscriptions.forEach((unsubscribe) => unsubscribe());
-  }, [repo, ids]);
 
   return automergeUseDocuments<T>(ids, options);
 }
@@ -244,9 +234,10 @@ export function useDocHandle<T>(
   params?: UseDocHandleSuspendingParams | UseDocHandleSynchronousParams,
 ): DocHandle<T> | undefined {
   useRetryUnavailableDocs([id]);
-  return automergeUseDocHandle<T>(id as AnyDocumentId, params as any) as
-    | DocHandle<T>
-    | undefined;
+  return automergeUseDocHandle<T>(
+    id as AnyDocumentId,
+    params as { suspense: false },
+  ) as DocHandle<T> | undefined;
 }
 
 // MARK: useDocHandles
@@ -337,67 +328,46 @@ export function useDocumentSelector<T, R>(
       if (!handle) return undefined;
       const doc = handle.doc();
       if (!doc) return undefined;
-      return selector(handle.doc());
+      return selector(doc);
     },
   );
 }
 
 // MARK: useMembers
 
-const MEMBERS_REFRESH_DEBOUNCE_MS = 300;
-
-export function useMembers(groupId: AutomergeUrl, access?: Access): DocMember[];
 export function useMembers(
   groupId: AutomergeUrl | undefined,
   access?: Access,
-): DocMember[] | undefined;
-
-export function useMembers(
-  groupId: AutomergeUrl | undefined,
-  access?: Access,
-): DocMember[] | undefined {
+): DocMember[] {
   const zerno = useZerno();
 
-  const [members, setMembers] = useState<DocMember[]>([]);
+  // Coalesces bursts of keyhive updates (local and remote) into version bumps.
+  const version = useKeyhiveUpdates(zerno.hive);
 
+  const [members, setMembers] = useState<DocMember[]>([]);
   useEffect(() => {
     if (!groupId) {
       setMembers([]);
       return;
     }
     let isMounted = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     setMembers([]);
-    const fetchMembers = (): void => {
-      zerno.access
-        .membersWithAccess({
-          id: groupId,
-          access: access ?? Access.read(),
-        })
-        .then((result) => {
-          if (isMounted) setMembers(result);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch Keyhive members:", err);
-          if (isMounted) setMembers([]);
-        });
-    };
-    // Hive emits `update` on every applied event, often in bursts; refetch
-    // only after the burst goes quiet instead of once per event.
-    const onUpdateListener = (): void => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (isMounted) fetchMembers();
-      }, MEMBERS_REFRESH_DEBOUNCE_MS);
-    };
-    fetchMembers();
-    zerno.hive.emitter.on("update", onUpdateListener);
+    zerno.access
+      .membersWithAccess({
+        id: groupId,
+        access: access ?? Access.read(),
+      })
+      .then((result) => {
+        if (isMounted) setMembers(result);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch Keyhive members:", err);
+        if (isMounted) setMembers([]);
+      });
     return () => {
       isMounted = false;
-      clearTimeout(timer);
-      zerno.hive.emitter.off("update", onUpdateListener);
     };
-  }, [zerno, groupId]);
+  }, [zerno, groupId, version]);
 
   return members;
 }
