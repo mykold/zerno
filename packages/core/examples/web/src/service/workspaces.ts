@@ -87,7 +87,7 @@ export class WorkspaceService {
     await this.zerno.access.grant({
       id: channel.url,
       member: group,
-      access: Access.read(),
+      access: Access.edit(),
     })
 
     // Flush capability grants immediately so peers get decryption keys ASAP.
