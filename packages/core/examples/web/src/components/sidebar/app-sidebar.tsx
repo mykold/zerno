@@ -34,8 +34,8 @@ import { Button } from "@/components/ui/button"
 import { Channels } from "@/components/sidebar/channels"
 import { identifierColor, shrinkIdentifier } from "@/utilities"
 import { useTheme } from "@/components/theme-provider"
-import { OpenChannelDialog } from "./open-channel-dialog"
-import { CreateChannelDialog } from "./create-channel-dialog"
+import { OpenChannelPopover } from "./open-channel-popover"
+import { CreateChannelPopover } from "./create-channel-popover"
 
 // MARK: IdentifierTooltip
 
@@ -163,20 +163,20 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <CreateChannelDialog>
+              <CreateChannelPopover>
                 <SidebarMenuButton className="hover:bg-sidebar-accent">
                   <SquarePenIcon />
                   Create channel
                 </SidebarMenuButton>
-              </CreateChannelDialog>
+              </CreateChannelPopover>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <OpenChannelDialog>
+              <OpenChannelPopover>
                 <SidebarMenuButton className="hover:bg-sidebar-accent">
                   <Link2Icon />
                   Open channel
                 </SidebarMenuButton>
-              </OpenChannelDialog>
+              </OpenChannelPopover>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
