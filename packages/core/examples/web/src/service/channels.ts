@@ -52,13 +52,6 @@ export class ChannelService {
         id: messageList.url,
         access: Access.read(),
       })
-      // Relay may not see doc ownership, so prove our `Edit` directly.
-      // TODO: Remove when @automerge/automerge-subduction@0.17.0 is available
-      await this.zerno.access.grant({
-        id: messageList.url,
-        member: this.zerno.identity.me().contactCard,
-        access: Access.edit(),
-      })
     } else {
       messageList =
         await this.zerno.documents.find<ZernoMessageList>(messageListId)
