@@ -1,0 +1,63 @@
+diff --git a/dist/keyhive/blob-interceptor.js b/dist/keyhive/blob-interceptor.js
+index 0f8cc071ceeb6a0baea61641e9fbced477ee8e47..c440c57bed84ce5614a1b68fc3a5ab84f06ddf87 100644
+--- a/dist/keyhive/blob-interceptor.js
++++ b/dist/keyhive/blob-interceptor.js
+@@ -244,8 +244,10 @@ export class KeyhiveBlobInterceptor {
+             return blob;
+         return this.#queue.run(async () => {
+             const doc = await this.#keyhive.getDocument(new KeyhiveDocumentId(binaryDocumentId));
+-            if (!doc)
++            if (!doc) {
++                log.debug(`[KeyhiveBlobInterceptor] transformIncoming: no keyhive document for ${documentId}; leaving pending`);
+                 return null;
++            }
+             // Decrypt this blob and, on a cold load, walk its predecessor chain by
+             // loading just the parent blobs it points at. Collect this blob's
+             // plaintext plus any ancestor plaintexts the walk recovers. Their
+@@ -253,8 +255,10 @@ export class KeyhiveBlobInterceptor {
+             const out = [];
+             const seen = new Set();
+             const ok = await this.#decryptAndWalk(doc, commitId, blob, loadBlob, out, seen);
+-            if (!ok)
++            if (!ok) {
++                log.debug(`[KeyhiveBlobInterceptor] transformIncoming: decrypt failed for ${documentId} commit=${commitId || "<bulk>"}; leaving pending`);
+                 return null;
++            }
+             return out.length === 1 ? out[0] : concatBytes(out);
+         });
+     }
+diff --git a/dist/network-adapter/sync-protocol.js b/dist/network-adapter/sync-protocol.js
+index 6250bd929e2fe11db424e11300df81aac54e3028..b7152f04e66f1c9241341fe4c4eaa9cabe07685f 100644
+--- a/dist/network-adapter/sync-protocol.js
++++ b/dist/network-adapter/sync-protocol.js
+@@ -313,6 +313,7 @@ export class SyncProtocol {
+                 metrics.recordOpsSent(foundResult.events.length);
+                 metrics.recordOpsRequested(requested.length);
+                 log.debug(`[AMRepoKeyhive] Found ${foundResult.events.length} ops to send to and ${requested.length} ops to request from ${message.senderId}`);
++                log.debug(`[AMRepoKeyhive] sync response delta: localPairSet=${localHashes.size} peerFound=${peerFoundHashes.length} peerPending=${peerPendingHashes.length} ourPending=${pendingOpHashes.length} -> toSend=${hashStringsToSend.size} toRequest=${hashStringsToRequest.size}`);
+                 // Metadata for sync shortcut protocol
+                 const syncResponderTotal = localHashes.size + pendingOpHashes.length;
+                 const syncRequesterTotal = peerFoundHashes.length + peerPendingHashes.length;
+@@ -652,10 +653,10 @@ export class SyncProtocol {
+     // Returns intersection of hashes both peers can access, plus public hashes.
+     async getHashesForPeerPair(peerA, peerB, metrics) {
+         const hashLookupStart = Date.now();
+-        const hashesForA = (await this.cache.getHashesForPeer(this.keyhive, peerA, metrics)) ??
+-            new Map();
+-        const hashesForB = (await this.cache.getHashesForPeer(this.keyhive, peerB, metrics)) ??
+-            new Map();
++        const rawA = await this.cache.getHashesForPeer(this.keyhive, peerA, metrics);
++        const rawB = await this.cache.getHashesForPeer(this.keyhive, peerB, metrics);
++        const hashesForA = rawA ?? new Map();
++        const hashesForB = rawB ?? new Map();
+         const publicHashes = await this.cache.getPublicHashes(this.keyhive, metrics);
+         metrics?.recordHashLookupTime(Date.now() - hashLookupStart);
+         const result = new Map(publicHashes);
+@@ -664,6 +665,7 @@ export class SyncProtocol {
+                 result.set(hashString, hashBytes);
+             }
+         }
++        log.debug(`[AMRepoKeyhive] peerHashSets A=${rawA ? rawA.size : "null"} B=${rawB ? rawB.size : "null"} public=${publicHashes.size} pairSet=${result.size}`);
+         return result;
+     }
+ }
