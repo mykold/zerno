@@ -35,7 +35,7 @@ export class Zerno {
     this.documents = new DocumentService(repo, hive);
     this.access = new AccessService(hive);
     this.identity = new IdentityService(hive);
-    this.groups = new GroupService(hive);
+    this.groups = new GroupService(this.documents, this.access);
 
     if (resyncSubductionInterval && resyncSubductionInterval > 0)
       this.documents.startResyncSubductionTimer(resyncSubductionInterval);

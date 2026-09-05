@@ -1,7 +1,6 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo"
 import { Access } from "zerno-core"
 import type { ContactCard, Zerno } from "zerno-core"
-import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
 
 import type { ZernoChannel } from "./channels.js"
 import type { PhonebookService } from "./phonebook.js"
@@ -58,8 +57,8 @@ export class WorkspaceService {
       contactCard: me.contactCard,
     })
 
-    // Create the keyhive group and join it as admin, so the creator can manage
-    // it the same way as the other admins and shows up in the member list
+    // Create the group and join it as admin, so the creator can manage it
+    // the same way as the other admins and shows up in the member list
     const group = await this.zerno.groups.create()
     await this.zerno.groups.grant({
       group,
@@ -67,26 +66,26 @@ export class WorkspaceService {
       access: Access.admin(),
     })
 
-    // Grant the keyhive group access to the phonebook, so every current and
-    // future member of the group can resolve contact cards
-    await this.zerno.access.grant({
+    // Grant the group access to the phonebook, so every current and future
+    // member of the group can resolve contact cards (and add their own)
+    await this.zerno.groups.addDocument({
+      group,
       id: phonebook.url,
-      member: group,
-      access: Access.read(),
+      access: Access.edit(),
     })
 
     // Create the channel document
     const channel = await this.zerno.documents.create<ZernoChannel>({
       name: args.name,
-      groupId: uint8ArrayToHex(group.groupId.toBytes()),
+      groupUrl: group.url,
       phonebookId: phonebook.url,
       messages: {},
     })
 
-    // Grant the keyhive group access to the channel document
-    await this.zerno.access.grant({
+    // Grant the group access to the channel document
+    await this.zerno.groups.addDocument({
+      group,
       id: channel.url,
-      member: group,
       access: Access.edit(),
     })
 
@@ -127,9 +126,9 @@ export class WorkspaceService {
       contactCard: args.contactCard,
     })
 
-    // Membership in the keyhive group grants access to all of the channel's
+    // Membership in the group grants access to all of the channel's
     // documents, including the ones created later
-    const group = await this.zerno.groups.find(args.channel.doc().groupId)
+    const group = await this.zerno.groups.find(args.channel.doc().groupUrl)
     await this.zerno.groups.grant({
       group,
       contactCard: args.contactCard,

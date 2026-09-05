@@ -1,15 +1,5 @@
-import {
-  parseAutomergeUrl,
-  type AutomergeUrl,
-  type Repo,
-} from "@automerge/automerge-repo";
-import {
-  Access,
-  docIdFromAutomergeUrl,
-  DocumentId,
-  Group,
-  Identifier,
-} from "@automerge/automerge-repo-keyhive";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
+import { Access, Identifier } from "@automerge/automerge-repo-keyhive";
 import type {
   AutomergeRepoKeyhive,
   ContactCard,
@@ -28,11 +18,6 @@ export function sanitazeIdentifier(
   return new Identifier(hexToUint8Array(identifier));
 }
 
-function automergeUrlToDocumentId(url: AutomergeUrl): DocumentId {
-  const { binaryDocumentId } = parseAutomergeUrl(url);
-  return new DocumentId(binaryDocumentId);
-}
-
 const ACCESS_TTL = 60_000; /* ms */
 
 function cacheKey(id: AutomergeUrl, member: Identifier): string {
@@ -49,31 +34,14 @@ export class AccessService {
 
   constructor(private readonly hive: AutomergeRepoKeyhive) {}
 
-  /** Grants a contact card or a keyhive group access to a document */
+  /** Grants a contact card access to a document */
   async grant(args: {
     id: AutomergeUrl;
-    member: ContactCard | Group;
+    member: ContactCard;
     access: Access;
   }): Promise<void> {
-    if (args.member instanceof Group) {
-      // The keyhive wasm layer wants the raw document id, not an AutomergeUrl.
-      const id = automergeUrlToDocumentId(args.id);
-      const doc = await this.hive.keyhive.getDocument(id);
-      if (!doc) throw new Error(`Keyhive document not found: ${args.id}`);
-
-      await this.hive.keyhive.addMember(
-        args.member.toAgent(),
-        doc.toMembered(),
-        args.access,
-        [],
-      );
-      // Group membership changes the access of every member of the group.
-      this.accessCache.clear();
-    } else {
-      await this.hive.addMemberToDoc(args.id, args.member, args.access);
-      this.accessCache.delete(cacheKey(args.id, args.member.id));
-    }
-
+    await this.hive.addMemberToDoc(args.id, args.member, args.access);
+    this.accessCache.delete(cacheKey(args.id, args.member.id));
     this.membersCache.delete(args.id);
   }
 

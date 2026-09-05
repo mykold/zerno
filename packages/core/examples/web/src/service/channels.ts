@@ -7,7 +7,7 @@ import type { ZernoMessageList } from "./messages.js"
 
 export interface ZernoChannel {
   name: string
-  groupId: string /* Keyhive GroupId */
+  groupUrl: AutomergeUrl /* Group */
   phonebookId: AutomergeUrl
   messages: Record<string /* Identifier */, AutomergeUrl /* ZernoMessageList */>
 }
@@ -44,13 +44,20 @@ export class ChannelService {
         messages: [],
       })
 
-      // Members of the keyhive group get access to the new message list,
-      // including the ones that join later
-      const group = await this.zerno.groups.find(args.channel.doc().groupId)
+      // Members of the group get access to the new message list, including
+      // the ones that join later
+      const group = await this.zerno.groups.find(args.channel.doc().groupUrl)
+      await this.zerno.groups.addDocument({
+        group,
+        id: messageList.url,
+        access: Access.read(),
+      })
+      // Relay may not see doc ownership, so prove our `Edit` directly.
+      // TODO: Remove when @automerge/automerge-subduction@0.17.0 is available
       await this.zerno.access.grant({
         id: messageList.url,
-        member: group,
-        access: Access.read(),
+        member: this.zerno.identity.me().contactCard,
+        access: Access.edit(),
       })
     } else {
       messageList =
@@ -61,7 +68,7 @@ export class ChannelService {
       d.messages.push({
         id: crypto.randomUUID(), // TODO
         author,
-        content: args.content.trim(),
+        content: args.content,
         createdAt: Date.now(),
       })
     )
