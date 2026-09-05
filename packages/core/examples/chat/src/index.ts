@@ -64,7 +64,6 @@ const restoreAutomergeUrl = async (file: string): Promise<AutomergeUrl> => {
 const zerno = new Zerno({
   repo,
   hive,
-  resyncSubductionInterval: 2_000 /* ms */,
 });
 
 const phonebooks = new PhonebookService(zerno);

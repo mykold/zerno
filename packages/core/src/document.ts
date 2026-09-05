@@ -1,4 +1,3 @@
-import { interpretAsDocumentId } from "@automerge/automerge-repo";
 import type {
   AbortOptions,
   AutomergeUrl,
@@ -12,9 +11,6 @@ import type { AutomergeRepoKeyhive } from "@automerge/automerge-repo-keyhive";
 const DEFAULT_FIND_TIMEOUT_MS = 120_000;
 
 export class DocumentService {
-  /** All document urls this instance has created or found. */
-  readonly #urls = new Set<AutomergeUrl>();
-
   constructor(
     private readonly repo: Repo,
     private readonly hive: AutomergeRepoKeyhive,
@@ -23,7 +19,6 @@ export class DocumentService {
   async create<T>(initialValue: T): Promise<DocHandle<T>> {
     const handle = await this.repo.create2<T>(initialValue);
     await this.hive.addSyncServerRelayToDoc(handle.url);
-    this.#urls.add(handle.url);
     return handle;
   }
 
@@ -35,7 +30,6 @@ export class DocumentService {
     id: AutomergeUrl,
     options?: RepoFindOptions & AbortOptions,
   ): Promise<DocHandle<T>> {
-    this.#urls.add(id);
     return await this.repo.find<T>(id, {
       ...options,
       signal: options?.signal ?? AbortSignal.timeout(DEFAULT_FIND_TIMEOUT_MS),
@@ -46,29 +40,5 @@ export class DocumentService {
 
   async delete(id: AutomergeUrl) {
     this.repo.delete(id);
-  }
-
-  #timer: ReturnType<typeof setInterval> | null = null;
-
-  /** Starts periodic {@link Repo.resyncSubduction} over all known documents. */
-  startResyncSubductionTimer(intervalMs: number): void {
-    if (this.#timer) throw new Error("Auto resync already started");
-
-    this.#timer = setInterval(() => {
-      for (const url of this.#urls) {
-        try {
-          this.repo.resyncSubduction(interpretAsDocumentId(url));
-        } catch {
-          // Document not attached yet so next tick retries
-        }
-      }
-    }, intervalMs);
-  }
-
-  /** Stops periodic {@link Repo.resyncSubduction} */
-  stopResyncSubductionTimer(): void {
-    if (!this.#timer) throw new Error("Auto resync not started");
-    clearInterval(this.#timer);
-    this.#timer = null;
   }
 }

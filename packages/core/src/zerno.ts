@@ -9,15 +9,6 @@ import { GroupService } from "./groups.js";
 export interface ZernoOptions {
   repo: Repo;
   hive: AutomergeRepoKeyhive;
-  /**
-   * Periodically re-arms the subduction sync loop for every known document.
-   *
-   * Local commits are inserted into a document's sedimentree without any
-   * broadcast, and per-tree batch-sync requests stop once both sides report
-   * equal heads — so later local changes are never uploaded unless something
-   * re-requests the tree. This interval keeps shared documents flowing.
-   */
-  resyncSubductionInterval?: number;
 }
 
 export class Zerno {
@@ -29,16 +20,13 @@ export class Zerno {
   public readonly identity: IdentityService;
   public readonly groups: GroupService;
 
-  constructor({ repo, hive, resyncSubductionInterval }: ZernoOptions) {
+  constructor({ repo, hive }: ZernoOptions) {
     this.repo = repo;
     this.hive = hive;
     this.documents = new DocumentService(repo, hive);
     this.access = new AccessService(hive);
     this.identity = new IdentityService(hive);
     this.groups = new GroupService(this.documents, this.access);
-
-    if (resyncSubductionInterval && resyncSubductionInterval > 0)
-      this.documents.startResyncSubductionTimer(resyncSubductionInterval);
   }
 
   // TODO: Why is this here? Maybe should be moved into `.grant()`? I don't really know.
