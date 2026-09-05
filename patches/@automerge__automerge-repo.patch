@@ -1,5 +1,5 @@
 diff --git a/dist/Repo.d.ts b/dist/Repo.d.ts
-index 15d4ca65aa613fb567335f09c8fcb8cb9c4a954a..7f326410c8cd1584b692fcaafcd566acb44a3308 100644
+index 15d4ca65aa613fb567335f09c8fcb8cb9c4a954a..d6b00fd4fc48b34395c83baee1db1df07357d52f 100644
 --- a/dist/Repo.d.ts
 +++ b/dist/Repo.d.ts
 @@ -320,6 +320,17 @@ export type RepoFindOptions = {
@@ -21,7 +21,7 @@ index 15d4ca65aa613fb567335f09c8fcb8cb9c4a954a..7f326410c8cd1584b692fcaafcd566ac
  export type { SyncInfo } from "./DocHandle.js";
  export type DeleteDocumentPayload = {
 diff --git a/dist/Repo.js b/dist/Repo.js
-index adfddd9b3926510604274217c42f97f104e119a3..b6023065188f66739f4ecd3837b7a8b34dad82ef 100644
+index adfddd9b3926510604274217c42f97f104e119a3..ee0836ab456693cbdeef23d084850205cb58bed9 100644
 --- a/dist/Repo.js
 +++ b/dist/Repo.js
 @@ -22,6 +22,13 @@ import { hasAtLeastOneKey } from "./helpers/has-at-least-one-key.js";
@@ -90,7 +90,7 @@ index adfddd9b3926510604274217c42f97f104e119a3..b6023065188f66739f4ecd3837b7a8b3
      /**
       * @deprecated Alias for {@link Repo.find}. Will be removed in the next major release
 diff --git a/dist/subduction/source.js b/dist/subduction/source.js
-index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e32928bc2 100644
+index 4692619444edfae0ef5f111cef6ce29499507afa..7ce105e7752e9eb9873a330af2654ae7294ea2d4 100644
 --- a/dist/subduction/source.js
 +++ b/dist/subduction/source.js
 @@ -3,6 +3,7 @@ import { BlobMeta, CommitId, CommitInput, Fragment, FragmentInput, LooseCommit,
@@ -117,7 +117,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e
  export class SubductionSource {
      #subduction;
      #storage;
-@@ -457,7 +467,23 @@ export class SubductionSource {
+@@ -457,7 +467,27 @@ export class SubductionSource {
          })();
          this.#scheduleRecompute(this.#entries.get(sidStr));
      }
@@ -130,19 +130,23 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e
 +        // the orphaned handle — local changes made through the new handle
 +        // would never be saved to Subduction, and inbound sync data would
 +        // never reach the new handle.
++        //
++        // Not resetting heal state here: it's keyed by sedimentreeId, so
++        // detaching doesn't invalidate it. The 500ms read-retry evicts faster
++        // than the heal scheduler's 2s backoff — resetting on every detach
++        // canceled the heal timer before it fired, leaving documents stuck
++        // "unavailable" while their grant was still propagating.
 +        const sidStr = toSedimentreeId(documentId).toString();
 +        const entry = this.#entries.get(sidStr);
 +        if (!entry)
 +            return;
-+        this.#log.warn(`[DIAG detach] ${sidStr.slice(0, 8)}: dropping entry (handle rebound)`);
 +        this.#entries.delete(sidStr);
 +        this.#recomputeDirty.delete(sidStr);
-+        this.#scheduler.resetHealState(sidStr);
 +    }
      shareConfigChanged() {
          for (const entry of this.#entries.values()) {
              // A share-config change can flip a previously-denied fetch to
-@@ -480,7 +506,7 @@ export class SubductionSource {
+@@ -480,7 +510,7 @@ export class SubductionSource {
              // now make them transformable, so re-transform locally. Defer the local
              // re-transform during an in-flight sync to avoid racing with its handle
              // update.
@@ -151,7 +155,19 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e
                  const empty = Automerge.getHeads(entry.handle.fullDoc()).length === 0;
                  if (entry.syncInFlight) {
                      entry.retryTransformAfterSync = true;
-@@ -625,6 +651,15 @@ export class SubductionSource {
+@@ -611,6 +641,11 @@ export class SubductionSource {
+             case "initializing": {
+                 // After a successful sync, batch-load blobs into the handle
+                 if (entry.lastSyncResult === "succeeded" && !entry.blobLoadInFlight) {
++                    // Mark pending before the async blob load: loadBlobsAndTransition
++                    // only clears "unavailable" after it resolves, and the 500ms
++                    // read-retry can evict this entry in that gap, discarding a
++                    // sync that just succeeded (observed: 1600+ evict-before-load cycles).
++                    entry.query.sourcePending("subduction");
+                     entry.blobLoadInFlight = true;
+                     void this.#loadBlobsAndTransition(entry);
+                     return;
+@@ -625,6 +660,15 @@ export class SubductionSource {
                          entry.syncInFlight = true;
                          void this.#doSync(entry);
                      }
@@ -167,7 +183,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e
                      else if (Automerge.getHeads(entry.handle.fullDoc()).length === 0 &&
                          !this.#anyConnectionManagerConnecting()) {
                          // All connections settled and sync failed — give up.
-@@ -662,7 +697,28 @@ export class SubductionSource {
+@@ -662,7 +706,28 @@ export class SubductionSource {
              entry.flushSave.flush();
              await entry.saveSettled;
              this.#log.debug(`doSync ${sid} (state=${entry.syncState})`);
@@ -197,7 +213,32 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e
              const results = peerResultMap.entries();
              const anySuccess = results.some(r => r.success);
              this.#log.debug(`doSync ${sid}: ${results.length} peer(s), success=${anySuccess}`);
-@@ -894,6 +950,17 @@ export class SubductionSource {
+@@ -699,8 +764,22 @@ export class SubductionSource {
+                 this.#scheduler.scheduleHealSync(entry.sedimentreeId);
+             }
+             else {
+-                entry.lastSyncResult = "succeeded";
+-                this.#scheduler.resetHealState(sedimentreeId.toString());
++                // A relay can report "success" while silently dropping a commit
++                // it policy-rejected (e.g. our Edit grant hadn't applied yet);
++                // that never shows up in success/transportErrors. Verify via
++                // remoteHeads instead — if no peer reflects our heads, keep healing.
++                const localHeads = Automerge.getHeads(entry.handle.fullDoc());
++                const reflectedByAnyPeer = localHeads.length === 0 ||
++                    results.some(r => r.success && localHeads.every(h => r.stats.remoteHeads.some(rh => rh.toHexString() === h)));
++                if (!reflectedByAnyPeer) {
++                    this.#log.warn(`doSync ${sid}: reported success but no peer's remoteHeads reflect our local heads — a commit may have been policy-rejected; healing`);
++                    entry.lastSyncResult = "all-failed";
++                    this.#scheduler.scheduleHealSync(entry.sedimentreeId);
++                }
++                else {
++                    entry.lastSyncResult = "succeeded";
++                    this.#scheduler.resetHealState(sedimentreeId.toString());
++                }
+             }
+         }
+         catch (e) {
+@@ -894,6 +973,17 @@ export class SubductionSource {
      /**
       * Debounced re-run of the bulk blob transform after a content blob that
       * could not be transformed landed.
@@ -215,7 +256,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e
       */
      #scheduleTransformRetry(entry) {
          if (this.#shuttingDown || entry.transformRetryScheduled)
-@@ -902,13 +969,35 @@ export class SubductionSource {
+@@ -902,13 +992,35 @@ export class SubductionSource {
          void (async () => {
              try {
                  await yieldToMacrotask();
@@ -255,7 +296,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e
              }
          })();
      }
-@@ -1321,6 +1410,34 @@ export class SubductionSource {
+@@ -1321,6 +1433,34 @@ export class SubductionSource {
              return;
          this.#scheduler.resetHealState(sid);
          entry.lastSyncResult = null;
@@ -291,7 +332,7 @@ index 4692619444edfae0ef5f111cef6ce29499507afa..458118f967be5753b4380cb5955e1b0e
      }
      // ── Flush ───────────────────────────────────────────────────────────
 diff --git a/dist/subduction/storage.js b/dist/subduction/storage.js
-index 37f9cc727f7ab1d24118879efadc4bb44f90e827..6e857322922cef8d37662afdaeb039c8844fd8d7 100644
+index 37f9cc727f7ab1d24118879efadc4bb44f90e827..1d7e3155251cc04acdceec48c5633680391b8074 100644
 --- a/dist/subduction/storage.js
 +++ b/dist/subduction/storage.js
 @@ -228,19 +228,47 @@ export class SubductionStorageBridge {
@@ -357,7 +398,7 @@ index 37f9cc727f7ab1d24118879efadc4bb44f90e827..6e857322922cef8d37662afdaeb039c8
                  if (this.listeners["commit-saved"]?.length) {
                      commits.forEach(({ commitId }, i) => {
 diff --git a/src/subduction/storage.ts b/src/subduction/storage.ts
-index bda00635ccb518d9ab6c8e3e79639709936ea48e..73e6f2e6488fe8170162ba3618d9e5e99c2d629b 100644
+index bda00635ccb518d9ab6c8e3e79639709936ea48e..ab7707ab7d1bbb2ff7bdad7818bd6259cc464021 100644
 --- a/src/subduction/storage.ts
 +++ b/src/subduction/storage.ts
 @@ -326,13 +326,36 @@ export class SubductionStorageBridge implements SedimentreeStorage {

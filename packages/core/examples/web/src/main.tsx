@@ -93,11 +93,7 @@ function Fallback({ text }: { text: string }) {
 async function main() {
   const { hive, repo } = await createKeyhiveRepo()
 
-  const zerno = new Zerno({
-    repo,
-    hive,
-    resyncSubductionInterval: 2_000,
-  })
+  const zerno = new Zerno({ repo, hive })
 
   const phonebooks = new PhonebookService(zerno)
   const workspaces = new WorkspaceService(zerno, phonebooks)

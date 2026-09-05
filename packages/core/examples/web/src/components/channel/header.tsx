@@ -8,7 +8,7 @@ export interface ChannelHeaderProps {
 }
 
 export function ChannelHeader({ channel }: ChannelHeaderProps) {
-  const members = useGroupMembers(channel.groupId)
+  const members = useGroupMembers(channel.groupUrl)
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b px-6 font-semibold">

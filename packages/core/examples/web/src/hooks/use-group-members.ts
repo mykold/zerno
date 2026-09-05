@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react"
 import { Access } from "zerno-core"
-import type { GroupMember } from "zerno-core"
+import type { AutomergeUrl, GroupMember } from "zerno-core"
 
 import { useAppContext } from "@/app-context"
 
 const MEMBERS_REFRESH_DEBOUNCE_MS = 2_000 /* ms */
 
-export function useGroupMembers(groupId: string | undefined): GroupMember[] {
+export function useGroupMembers(
+  groupId: AutomergeUrl | undefined
+): GroupMember[] {
   const { service } = useAppContext()
 
   const [members, setMembers] = useState<GroupMember[]>([])
