@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { AutomergeUrl } from "@automerge/automerge-repo"
 import { toast } from "sonner"
-import { Access, decodeContactCard, useDocHandle } from "zerno-react"
+import { Access, decodeContactCard, useAccess, useDocHandle } from "zerno-react"
 
 import {
   Sheet,
@@ -52,17 +52,7 @@ export function GrantChannelSheet({
   const [access, setAccess] = useState<string | undefined>()
   const [contactCard, setContactCard] = useState("")
 
-  const [myAccess, setMyAccess] = useState<Access | undefined>()
-
-  useEffect(() => {
-    service.zerno.access
-      .getAccess({
-        id: url,
-        member: service.zerno.identity.me().id,
-      })
-      .then(setMyAccess)
-      .catch(toast.error)
-  }, [service, url])
+  const myAccess = useAccess(url)
 
   const handleGrantChannel = async () => {
     switch (tab) {

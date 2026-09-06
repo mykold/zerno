@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import type { DependencyList } from "react";
 import { useKeyhiveUpdates } from "@automerge/keyhive-react";
 import {
   useRepo,
@@ -333,41 +334,72 @@ export function useDocumentSelector<T, R>(
   );
 }
 
-// MARK: useMembers
+// MARK: useAsyncEffect
 
-export function useMembers(
-  groupId: AutomergeUrl | undefined,
-  access?: Access,
-): DocMember[] {
-  const zerno = useZerno();
-
-  // Coalesces bursts of keyhive updates (local and remote) into version bumps.
-  const version = useKeyhiveUpdates(zerno.hive);
-
-  const [members, setMembers] = useState<DocMember[]>([]);
+function useAsyncEffect<T>(
+  fetcher: () => Promise<T> | undefined,
+  fallback: T,
+  deps: DependencyList,
+): T {
+  const [value, setValue] = useState<T>(fallback);
   useEffect(() => {
-    if (!groupId) {
-      setMembers([]);
-      return;
-    }
     let isMounted = true;
-    setMembers([]);
-    zerno.access
-      .membersWithAccess({
-        id: groupId,
-        access: access ?? Access.read(),
-      })
-      .then((result) => {
-        if (isMounted) setMembers(result);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch Keyhive members:", err);
-        if (isMounted) setMembers([]);
-      });
+    setValue(fallback);
+    fetcher()?.then(
+      (result) => {
+        if (isMounted) setValue(result);
+      },
+      () => {
+        if (isMounted) setValue(fallback);
+      },
+    );
     return () => {
       isMounted = false;
     };
-  }, [zerno, groupId, version]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return value;
+}
 
-  return members;
+// MARK: useMembers
+
+export function useMembers(
+  id: AutomergeUrl | undefined,
+  access: Access = Access.read(),
+): DocMember[] {
+  const zerno = useZerno();
+  const version = useKeyhiveUpdates(zerno.hive);
+
+  return useAsyncEffect<DocMember[]>(
+    () => {
+      if (!id) return undefined;
+      return zerno.access.membersWithAccess({ id, access }).catch((err) => {
+        console.error("Failed to fetch Keyhive members:", err);
+        throw err;
+      });
+    },
+    [],
+    [version, id, zerno],
+  );
+}
+
+// MARK: useAccess
+
+export function useAccess(id: AutomergeUrl | undefined): Access | undefined {
+  const zerno = useZerno();
+  const version = useKeyhiveUpdates(zerno.hive);
+
+  return useAsyncEffect<Access | undefined>(
+    () => {
+      if (!id) return undefined;
+      return zerno.access
+        .getAccess({ id, member: zerno.identity.me().id })
+        .catch((err) => {
+          console.error("Failed to fetch Keyhive access:", err);
+          throw err;
+        });
+    },
+    undefined,
+    [version, id, zerno],
+  );
 }

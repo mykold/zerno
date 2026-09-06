@@ -1,7 +1,7 @@
-import React, { useEffect, useId, useState } from "react"
+import React, { useId, useState } from "react"
 import type { AutomergeUrl } from "@automerge/automerge-repo/slim"
 import { toast } from "sonner"
-import { Access, useDocHandle } from "zerno-react"
+import { Access, useAccess, useDocHandle } from "zerno-react"
 
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -29,18 +29,7 @@ export interface ChannelInputProps {
 export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   const { service } = useAppContext()
   const [content, setContent] = useState("")
-  const [myAccess, setMyAccess] = useState<Access | undefined>()
-
-  // TODO: Use `zerno-react:useAccess` once it is implemented
-  useEffect(() => {
-    service.zerno.access
-      .getAccess({
-        id: selectedChannelUrl,
-        member: service.zerno.identity.me().id,
-      })
-      .then(setMyAccess)
-      .catch(toast.error)
-  }, [service, selectedChannelUrl])
+  const myAccess = useAccess(selectedChannelUrl)
 
   const formId = useId()
   const channel = useDocHandle<ZernoChannel>(selectedChannelUrl, {

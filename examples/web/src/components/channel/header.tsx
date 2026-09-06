@@ -1,14 +1,14 @@
 import { HashIcon } from "lucide-react"
+import { useMembers } from "zerno-react"
 
 import type { ZernoChannel } from "@/service"
-import { useGroupMembers } from "@/hooks/use-group-members"
 
 export interface ChannelHeaderProps {
   channel: ZernoChannel
 }
 
 export function ChannelHeader({ channel }: ChannelHeaderProps) {
-  const members = useGroupMembers(channel.groupUrl)
+  const members = useMembers(channel.groupUrl)
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b px-6 font-semibold">
