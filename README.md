@@ -14,4 +14,10 @@ pnpm install
 
 - [`zerno-react`](./packages/react) provides React bindings for `zerno-core`. It provides React components and hooks for accessing the Zerno instance, observing documents, handling synchronization progress, and building reactive local-first applications.
 
-Examples of using [`zerno-core`](./packages/core) and [`zerno-react`](./packages/react) are available in [`packages/core/examples`](./packages/core/examples/). See the [examples section](./packages/core/README.md#examples) for more details.
+## Examples
+
+- [`zerno-repl`](./examples/repl/) demonstrates a minimal setup with Zerno
+
+- [`zerno-chat`](./examples/chat/) demonstrates a simple real-time chat in the terminal
+
+- [`zerno-web`](./examples/web/) demonstrates a real-time chat in the browser, using both `zerno-core` and `zerno-react`

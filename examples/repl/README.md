@@ -6,7 +6,7 @@ This example is built on the Automerge Repo stack. [`@automerge/automerge-repo`]
 
 [`@automerge/automerge-repo-keyhive`](https://www.npmjs.com/package/@automerge/automerge-repo-keyhive) adds identities and access control on top of Automerge Repo. It uses [`@keyhive/keyhive`](https://github.com/inkandswitch/keyhive/tree/main/keyhive_wasm) for the underlying cryptography: contact cards, membership, and grants that decide who can relay, read, edit, or administer a document.
 
-[`@automerge/automerge-subduction`](https://github.com/inkandswitch/subduction/tree/main/automerge_subduction_wasm) is the sync relay. Peers that are not directly connected exchange encrypted updates through a Subduction server. [`zerno-core`](../../) sits above all of this and exposes a simpler API for identity, documents, and grants — what the REPL actually calls.
+[`@automerge/automerge-subduction`](https://github.com/inkandswitch/subduction/tree/main/automerge_subduction_wasm) is the sync relay. Peers that are not directly connected exchange encrypted updates through a Subduction server. [`zerno-core`](../../packages/core) sits above all of this and exposes a simpler API for identity, documents, and grants — what the REPL actually calls.
 
 ## Usage
 

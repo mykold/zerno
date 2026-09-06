@@ -5,7 +5,7 @@ engineStrict: true
 
 packages:
   - "packages/*"
-  - "packages/core/examples/*"
+  - "examples/*"
 
 patchedDependencies:
   '@automerge/automerge-repo': patches/@automerge__automerge-repo.patch
