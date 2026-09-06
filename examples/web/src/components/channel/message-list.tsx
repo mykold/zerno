@@ -1,14 +1,16 @@
 import {
   Fragment,
-  useEffect,
+  forwardRef,
   useMemo,
-  useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
+  type ReactNode,
 } from "react"
 import { useDocHandle, useDocuments } from "zerno-react"
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo"
 import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
+import { Virtuoso } from "react-virtuoso"
 import {
   CircleCheckIcon,
   CircleXIcon,
@@ -274,6 +276,19 @@ function ChannelMessageRun({
 
 const NEW_MESSAGE_SOUND_PATH = "/notification.mp3"
 
+const VirtuosoList = forwardRef<
+  HTMLDivElement,
+  { style?: CSSProperties; children?: ReactNode }
+>(({ style, children }, ref) => (
+  <div ref={ref} style={style} className="px-6">
+    {children}
+  </div>
+))
+
+function VirtuosoTopSpacer() {
+  return <div className="h-6" />
+}
+
 export interface ChannelMessageListProps {
   selectedChannel: ZernoChannel
 }
@@ -294,10 +309,7 @@ export function ChannelMessageList({
     suspense: false,
   })
 
-  const messages = useMessages(messageLists, {
-    limit: 255, // TODO: Make this configurable
-    order: "desc",
-  })
+  const messages = useMessages(messageLists)
 
   // TODO: Make this configurable
   useNewMessageSound(messages, myId, NEW_MESSAGE_SOUND_PATH)
@@ -322,12 +334,6 @@ export function ChannelMessageList({
     return runs
   }, [messages, selectedChannel.messages, myId])
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!scrollRef.current) return
-    scrollRef.current.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
   if (messages.length === 0) {
     return (
       <Empty className="flex-1">
@@ -345,20 +351,25 @@ export function ChannelMessageList({
   }
 
   return (
-    <div className="scrollbar-none flex flex-1 flex-col gap-6 overflow-y-auto p-6">
-      {messageRuns.map((run, runIndex) => {
+    <Virtuoso
+      className="scrollbar-none flex-1"
+      data={messageRuns}
+      components={{ List: VirtuosoList, Header: VirtuosoTopSpacer }}
+      followOutput="auto"
+      initialTopMostItemIndex={messageRuns.length - 1}
+      computeItemKey={(_, run) => run.messages[0].id}
+      itemContent={(index, run) => {
         const divider =
-          runIndex > 0 &&
+          index > 0 &&
           formatDay(run.createdAt) !==
-            formatDay(messageRuns[runIndex - 1].createdAt)
+            formatDay(messageRuns[index - 1].createdAt)
         return (
-          <Fragment key={run.messages[0].id}>
+          <div className="pb-6">
             {divider && <DayDivider label={formatDay(run.createdAt)} />}
             <ChannelMessageRun {...run} />
-          </Fragment>
+          </div>
         )
-      })}
-      <div ref={scrollRef}></div>
-    </div>
+      }}
+    />
   )
 }
