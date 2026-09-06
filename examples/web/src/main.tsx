@@ -90,6 +90,13 @@ function Fallback({ text }: { text: string }) {
 }
 
 async function main() {
+  const root = createRoot(document.getElementById("root")!)
+  root.render(
+    <ThemeProvider defaultTheme="dark" storageKey="zerno-web.theme">
+      <Fallback text="Starting up Zerno..." />
+    </ThemeProvider>
+  )
+
   const { hive, repo } = await createKeyhiveRepo()
 
   const zerno = new Zerno({ repo, hive })
@@ -99,7 +106,7 @@ async function main() {
   const channels = new ChannelService(zerno)
   const service = new Service(zerno, workspaces, channels, phonebooks)
 
-  createRoot(document.getElementById("root")!).render(
+  root.render(
     <StrictMode>
       <ZernoProvider zerno={zerno}>
         <RepoContext.Provider value={repo}>
