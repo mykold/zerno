@@ -1,6 +1,5 @@
 import { StrictMode, Suspense, useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
-import { BrowserRouter, Route, Routes } from "react-router"
 
 import "@automerge/automerge-subduction"
 import { RepoContext } from "@automerge/react/slim"
@@ -10,7 +9,6 @@ import { IndexedDBStorageAdapter } from "@automerge/automerge-repo-storage-index
 import { Zerno } from "zerno-core"
 
 import "./index.css"
-import App from "./App"
 import { SYNC_SERVER } from "./sync-server.ts"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
 import { AppContextProvider } from "@/app-context.tsx"
@@ -23,6 +21,7 @@ import {
 } from "./service"
 import { ZernoProvider } from "zerno-react"
 import { Loader2Icon } from "lucide-react"
+import { AppRouter } from "./app-router.tsx"
 
 async function createKeyhiveRepo() {
   const { syncServer, subductionWebsocketEndpoints } = SYNC_SERVER
@@ -111,12 +110,7 @@ async function main() {
                 service={service}
                 storageKey="zerno-web.workspace-url"
               >
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<App />} />
-                    <Route path="/channels/:channel" element={<App />} />
-                  </Routes>
-                </BrowserRouter>
+                <AppRouter />
               </AppProvider>
             </ThemeProvider>
           </Suspense>
