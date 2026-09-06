@@ -8,12 +8,12 @@ export {
   useDocuments,
   useDocHandle,
   useDocHandles,
-  useDocumentSelector,
+  useDocSelector,
   useMembers,
   useAccess,
-} from "./hooks.js";
+} from "./hooks/index.js";
 export type {
   UseDocumentChangeFn,
   UseDocHandleSuspendingParams,
   UseDocHandleSynchronousParams,
-} from "./hooks.js";
+} from "./hooks/index.js";

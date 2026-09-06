@@ -1,7 +1,7 @@
 import { useState } from "react"
 import type { AutomergeUrl } from "@automerge/automerge-repo"
 import { toast } from "sonner"
-import { useDocHandle, useDocumentSelector } from "zerno-react"
+import { useDocHandle, useDocSelector } from "zerno-react"
 
 import {
   Sheet,
@@ -31,7 +31,7 @@ export function EditChannelSheet({
   const { service } = useAppContext()
 
   const channel = useDocHandle<ZernoChannel>(url, { suspense: true })
-  const channelName = useDocumentSelector(channel, (c) => c.name)
+  const channelName = useDocSelector(channel, (c) => c.name)
 
   const [name, setName] = useState(channelName)
   const handleChannelEdit = async () => {

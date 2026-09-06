@@ -7,7 +7,7 @@ import {
   MoonIcon,
 } from "lucide-react"
 import { encodeContactCard } from "zerno-core"
-import { useDocumentSelector } from "zerno-react"
+import { useDocSelector } from "zerno-react"
 import { toast } from "sonner"
 import { ContactCard, uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
 
@@ -149,7 +149,7 @@ function AppSidebarFooter() {
 
 export function AppSidebar() {
   const { workspace } = useAppContext()
-  const channels = useDocumentSelector(workspace, (d) => d.channels)
+  const channels = useDocSelector(workspace, (d) => d.channels)
 
   return (
     <Sidebar collapsible="icon">
