@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState } from "react"
+import { createContext, useCallback, useContext, useRef, useState } from "react"
 
 interface MessageEditingContextValue {
   /** Id of the message currently open in the inline editor */
@@ -31,10 +31,11 @@ export function MessageEditingProvider({
   const lastOwnMessageIdRef = useRef<string | null>(null)
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
 
-  const stopEditing = () => {
+  // Stable so a memoized message row is not re-rendered by its identity
+  const stopEditing = useCallback(() => {
     setEditingId(null)
     composerRef.current?.focus()
-  }
+  }, [])
 
   return (
     <MessageEditingContext.Provider

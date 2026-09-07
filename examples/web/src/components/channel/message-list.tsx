@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  memo,
   useEffect,
   useMemo,
   useRef,
@@ -20,7 +21,6 @@ import {
 
 import { useAppContext } from "@/app-context"
 import { useMessages } from "@/hooks/use-messages"
-import { useMessageEditing } from "@/hooks/use-message-editing"
 import { useNewMessageSound } from "@/hooks/use-message-sound"
 import { useNewMessageTitle } from "@/hooks/use-new-message-title"
 import { identifierColor, formatDay, formatMessageTimestamp } from "@/utilities"
@@ -62,6 +62,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { cn } from "@/lib/utils"
+import { useMessageEditing } from "@/hooks/use-message-editing"
 
 // MARK: DayDivider
 
@@ -110,27 +111,44 @@ const bottomSpacingClass = {
   relaxed: "pb-6",
 } as const
 
+/**
+ * Local midnight for a timestamp, so two messages can be compared by day
+ * without formatting either of them.
+ */
+function dayKey(timestamp: number): number {
+  const date = new Date(timestamp)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
 function buildTimelineEntries(
   messages: ZernoMessage[],
   myId: string
 ): ChatTimelineEntry[] {
-  return messages.map((message, index) => {
-    const previous = messages[index - 1]
+  const entries = new Array<ChatTimelineEntry>(messages.length)
+  let previousDay = 0
+  let day = messages.length > 0 ? dayKey(messages[0].createdAt) : 0
+
+  for (let index = 0; index < messages.length; index++) {
+    const message = messages[index]
     const next = messages[index + 1]
-    const day = formatDay(message.createdAt)
-    const newDay = !previous || formatDay(previous.createdAt) !== day
-    const endsRun =
-      !next ||
-      next.author !== message.author ||
-      formatDay(next.createdAt) !== day
-    return {
+    const nextDay = next ? dayKey(next.createdAt) : 0
+    const newDay = index === 0 || day !== previousDay
+    const endsRun = !next || next.author !== message.author || nextDay !== day
+
+    entries[index] = {
       message,
       isOwn: message.author === myId,
-      isAuthorLead: newDay || previous.author !== message.author,
-      dateLabel: newDay && previous ? day : undefined,
+      isAuthorLead: newDay || messages[index - 1].author !== message.author,
+      // Only the rows that actually draw a divider pay for the formatting
+      dateLabel: newDay && index > 0 ? formatDay(message.createdAt) : undefined,
       bottomSpacing: endsRun ? "relaxed" : "compact",
     }
-  })
+
+    previousDay = day
+    day = nextDay
+  }
+  return entries
 }
 
 // MARK: MessageInlineEditor
@@ -151,9 +169,12 @@ function MessageInlineEditor({
 
   const handleSave = () => {
     if (!messageList) return
-    const content = draft.trim()
-    if (!content) return
-    service.channels.editMessage({ messageList, id: message.id, content })
+    if (!draft.trim()) return
+    service.channels.editMessage({
+      messageList,
+      id: message.id,
+      content: draft.trim(),
+    })
     onClose()
   }
 
@@ -177,11 +198,14 @@ function MessageInlineEditor({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus
+          // Editing starts where the text ends, not in front of it
           onFocus={(e) =>
             e.currentTarget.setSelectionRange(draft.length, draft.length)
           }
           className="min-h-0 w-auto max-w-full resize-none border-none p-0 leading-relaxed focus-visible:ring-0 dark:bg-transparent"
         />
+        {/* Same affordance as "Show more": the shortcut is the label, and
+            clicking it works for anyone without a keyboard. */}
         <div className="flex gap-3">
           <Button
             variant="link"
@@ -376,7 +400,7 @@ interface ChatMessageEntryProps extends ChatTimelineEntry {
   stopEditing: () => void
 }
 
-function ChatMessageEntry({
+const ChatMessageEntry = memo(function ChatMessageEntry({
   message,
   messageList,
   isOwn,
@@ -392,6 +416,8 @@ function ChatMessageEntry({
       className={cn(
         "group/row",
         bottomSpacingClass[bottomSpacing],
+        // The row being edited has to be findable at a glance, and the theme
+        // carries no accent hue of its own to tint it with.
         isEditing && "-mx-6 rounded-md bg-amber-500/10 px-6"
       )}
     >
@@ -441,7 +467,7 @@ function ChatMessageEntry({
       </Message>
     </div>
   )
-}
+})
 
 // MARK: ChannelMessageList
 
