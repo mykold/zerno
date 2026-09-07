@@ -263,27 +263,33 @@ function MessageExpandableContent({ content }: MessageExpandableContentProps) {
   )
 }
 
-// MARK: MessageMenu
+// MARK: MessageBubble
 
-interface MessageMenuProps {
+interface MessageBubbleProps {
   message: ZernoMessage
   messageList: DocHandle<ZernoMessageList> | undefined
+  isOwn: boolean
+  isAuthorLead: boolean
   onEdit: () => void
-  children: React.ReactNode
 }
 
 /**
- * The message actions, reachable however the reader is holding the machine:
- * the button for a mouse, a right click for a trackpad, a long press on
- * touch (Radix turns that into the same context menu), and Tab for a
- * keyboard.
+ * The message itself, plus its actions when it is ours, reachable however
+ * the reader is holding the machine: the button for a mouse, a right click
+ * for a trackpad, a long press on touch (Radix turns that into the same
+ * context menu), and Tab for a keyboard.
+ *
+ * The bubble is already the positioning context and already carries the
+ * width bounds, so both menus hang off it directly rather than off a
+ * wrapper: one node fewer on every row of a virtualized list.
  */
-function MessageMenu({
+function MessageBubble({
   message,
   messageList,
+  isOwn,
+  isAuthorLead,
   onEdit,
-  children,
-}: MessageMenuProps) {
+}: MessageBubbleProps) {
   const { service } = useAppContext()
 
   const handleDelete = () => {
@@ -291,35 +297,55 @@ function MessageMenu({
     service.channels.deleteMessage({ messageList, id: message.id })
   }
 
+  const bubble = (
+    <Bubble variant="chat" className="min-w-12">
+      {!isAuthorLead && (
+        <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
+          {formatMessageTimestamp(message.createdAt).time}
+        </span>
+      )}
+      <BubbleContent className="py-1 wrap-anywhere">
+        <MessageExpandableContent content={message.content.val} />
+        {message.editedAt && (
+          <span className="text-xs text-muted-foreground"> (edited)</span>
+        )}
+      </BubbleContent>
+      {isOwn && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Message actions"
+              className="pointer-events-none absolute top-0 left-full z-10 mt-0.5 ml-1 opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 data-[state=open]:pointer-events-auto data-[state=open]:opacity-100"
+            >
+              <EllipsisIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onEdit}>
+              <PencilIcon />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={handleDelete}
+              disabled={!messageList}
+            >
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </Bubble>
+  )
+
+  if (!isOwn) return bubble
+
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Message actions"
-            className="pointer-events-none absolute top-0 left-full z-10 mt-0.5 ml-1 opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 data-[state=open]:pointer-events-auto data-[state=open]:opacity-100"
-          >
-            <EllipsisIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onEdit}>
-            <PencilIcon />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={handleDelete}
-            disabled={!messageList}
-          >
-            <Trash2Icon />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ContextMenuTrigger asChild>{bubble}</ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={onEdit}>
           <PencilIcon />
@@ -354,22 +380,6 @@ function ChatMessageEntry({
 }: ChatMessageEntryProps) {
   const [isEditing, setIsEditing] = useState(false)
 
-  const bubble = (
-    <Bubble variant="chat" className="max-w-full min-w-12">
-      {!isAuthorLead && (
-        <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
-          {formatMessageTimestamp(message.createdAt).time}
-        </span>
-      )}
-      <BubbleContent className="py-1 wrap-anywhere">
-        <MessageExpandableContent content={message.content.val} />
-        {message.editedAt && (
-          <span className="text-xs text-muted-foreground">(edited)</span>
-        )}
-      </BubbleContent>
-    </Bubble>
-  )
-
   return (
     <div
       className={cn(
@@ -380,7 +390,7 @@ function ChatMessageEntry({
     >
       {dateLabel && <DayDivider date={dateLabel} />}
       <Message>
-        {isAuthorLead ? (
+        {isAuthorLead && (
           <MessageAvatar>
             <Avatar className="h-8 w-8">
               <AvatarFallback
@@ -391,10 +401,9 @@ function ChatMessageEntry({
               </AvatarFallback>
             </Avatar>
           </MessageAvatar>
-        ) : (
-          <div className="w-8 shrink-0" />
         )}
-        <MessageContent className="gap-2">
+        {/* Standing in for the avatar column: min-w-8 plus the row's gap-2 */}
+        <MessageContent className={cn("gap-2", !isAuthorLead && "ps-10")}>
           {isAuthorLead && (
             <MessageHeader className="gap-2">
               <span
@@ -413,19 +422,13 @@ function ChatMessageEntry({
               onClose={() => setIsEditing(false)}
             />
           ) : (
-            <div className="relative flex w-fit max-w-[80%] min-w-0">
-              {isOwn ? (
-                <MessageMenu
-                  message={message}
-                  messageList={messageList}
-                  onEdit={() => setIsEditing(true)}
-                >
-                  {bubble}
-                </MessageMenu>
-              ) : (
-                bubble
-              )}
-            </div>
+            <MessageBubble
+              message={message}
+              messageList={messageList}
+              isOwn={isOwn}
+              isAuthorLead={isAuthorLead}
+              onEdit={() => setIsEditing(true)}
+            />
           )}
         </MessageContent>
       </Message>
