@@ -9,7 +9,12 @@ import {
 import { useDocHandle, useDocuments } from "zerno-react"
 import type { DocHandle } from "@automerge/automerge-repo"
 import { Virtuoso } from "react-virtuoso"
-import { MessageCircleIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import {
+  EllipsisIcon,
+  MessageCircleIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react"
 
 import { useAppContext } from "@/app-context"
 import { useMessages } from "@/hooks/use-messages"
@@ -41,6 +46,18 @@ import {
 } from "@/components/ui/message"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import { cn } from "@/lib/utils"
 
 // MARK: DayDivider
@@ -246,19 +263,27 @@ function MessageExpandableContent({ content }: MessageExpandableContentProps) {
   )
 }
 
-// MARK: MessageActionToolbar
+// MARK: MessageMenu
 
-interface MessageActionToolbarProps {
+interface MessageMenuProps {
   message: ZernoMessage
   messageList: DocHandle<ZernoMessageList> | undefined
   onEdit: () => void
+  children: React.ReactNode
 }
 
-function MessageActionToolbar({
+/**
+ * The message actions, reachable however the reader is holding the machine:
+ * the button for a mouse, a right click for a trackpad, a long press on
+ * touch (Radix turns that into the same context menu), and Tab for a
+ * keyboard.
+ */
+function MessageMenu({
   message,
   messageList,
   onEdit,
-}: MessageActionToolbarProps) {
+  children,
+}: MessageMenuProps) {
   const { service } = useAppContext()
 
   const handleDelete = () => {
@@ -267,25 +292,49 @@ function MessageActionToolbar({
   }
 
   return (
-    <div className="pointer-events-none absolute right-0 bottom-full z-10 flex items-center gap-0.5 rounded-lg border bg-background p-0.5 opacity-0 shadow-sm group-hover/bubble:pointer-events-auto group-hover/bubble:opacity-100 has-focus-visible:pointer-events-auto has-focus-visible:opacity-100">
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Edit message"
-        onClick={onEdit}
-      >
-        <PencilIcon />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Delete message"
-        onClick={handleDelete}
-        disabled={!messageList}
-      >
-        <Trash2Icon />
-      </Button>
-    </div>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Message actions"
+            className="pointer-events-none absolute top-0 left-full z-10 mt-0.5 ml-1 opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 data-[state=open]:pointer-events-auto data-[state=open]:opacity-100"
+          >
+            <EllipsisIcon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onEdit}>
+            <PencilIcon />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={handleDelete}
+            disabled={!messageList}
+          >
+            <Trash2Icon />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ContextMenuContent>
+        <ContextMenuItem onSelect={onEdit}>
+          <PencilIcon />
+          Edit
+        </ContextMenuItem>
+        <ContextMenuItem
+          variant="destructive"
+          onSelect={handleDelete}
+          disabled={!messageList}
+        >
+          <Trash2Icon />
+          Delete
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 
@@ -305,9 +354,26 @@ function ChatMessageEntry({
 }: ChatMessageEntryProps) {
   const [isEditing, setIsEditing] = useState(false)
 
+  const bubble = (
+    <Bubble variant="chat" className="max-w-full min-w-12">
+      {!isAuthorLead && (
+        <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
+          {formatMessageTimestamp(message.createdAt).time}
+        </span>
+      )}
+      <BubbleContent className="py-1 wrap-anywhere">
+        <MessageExpandableContent content={message.content.val} />
+        {message.editedAt && (
+          <span className="text-xs text-muted-foreground">(edited)</span>
+        )}
+      </BubbleContent>
+    </Bubble>
+  )
+
   return (
     <div
       className={cn(
+        "group/row",
         bottomSpacingClass[bottomSpacing],
         isEditing && "-mx-6 rounded-md bg-amber-500/10 px-6"
       )}
@@ -347,29 +413,18 @@ function ChatMessageEntry({
               onClose={() => setIsEditing(false)}
             />
           ) : (
-            <div className="group/row flex min-w-0">
-              <Bubble variant="chat" className="min-w-12">
-                {!isAuthorLead && (
-                  <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
-                    {formatMessageTimestamp(message.createdAt).time}
-                  </span>
-                )}
-                <BubbleContent className="py-1 wrap-anywhere">
-                  <MessageExpandableContent content={message.content.val} />
-                  {message.editedAt && (
-                    <span className="text-xs text-muted-foreground">
-                      (edited)
-                    </span>
-                  )}
-                </BubbleContent>
-                {isOwn && (
-                  <MessageActionToolbar
-                    message={message}
-                    messageList={messageList}
-                    onEdit={() => setIsEditing(true)}
-                  />
-                )}
-              </Bubble>
+            <div className="relative flex w-fit max-w-[80%] min-w-0">
+              {isOwn ? (
+                <MessageMenu
+                  message={message}
+                  messageList={messageList}
+                  onEdit={() => setIsEditing(true)}
+                >
+                  {bubble}
+                </MessageMenu>
+              ) : (
+                bubble
+              )}
             </div>
           )}
         </MessageContent>
