@@ -14,12 +14,7 @@ import {
   uint8ArrayToHex,
 } from "@automerge/automerge-repo-keyhive";
 import type { SyncServerSelection } from "@automerge/automerge-repo-keyhive";
-import {
-  encodeContactCard,
-  decodeContactCard,
-  Access,
-  Zerno,
-} from "zerno-core";
+import { decodeContactCard, Access, Zerno } from "zerno-core";
 
 import { colorize, colors } from "./colorize.js";
 
@@ -127,9 +122,8 @@ interface ZernoDocument {
         break;
       }
       case "me": {
-        const me = zerno.identity.me();
-        const id = uint8ArrayToHex(me.id.toBytes());
-        const contactCard = encodeContactCard(me.contactCard);
+        const id = zerno.identity.id("string");
+        const contactCard = zerno.identity.contactCard("string");
         switch (args[1]) {
           default: {
             console.log(colorize({ id, ZERNO_PEER, contactCard }));

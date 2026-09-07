@@ -48,10 +48,10 @@ export class WorkspaceService {
     const phonebook = await this.phonebooks.create();
 
     // Add current user contact card to the phonebook
-    const me = this.zerno.identity.me();
+    const contactCard = this.zerno.identity.contactCard();
     await this.phonebooks.add({
       phonebookId: phonebook.url,
-      contactCard: me.contactCard,
+      contactCard: contactCard,
     });
 
     // Create the channel

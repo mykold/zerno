@@ -8,7 +8,6 @@ import {
 } from "react"
 import { useDocHandle, useDocuments } from "zerno-react"
 import type { DocHandle } from "@automerge/automerge-repo"
-import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
 import { Virtuoso } from "react-virtuoso"
 import {
   CircleCheckIcon,
@@ -406,9 +405,8 @@ export function ChannelMessageList({
   selectedChannel,
 }: ChannelMessageListProps) {
   const { service } = useAppContext()
-  const [myId] = useState(() =>
-    uint8ArrayToHex(service.zerno.identity.me().id.toBytes())
-  )
+
+  const [myId] = useState(() => service.zerno.identity.id("string"))
 
   const messageListUrls = useMemo(() => {
     if (!selectedChannel?.messages) return []

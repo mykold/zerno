@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { render as inkRender, Box, Text, useInput, useWindowSize } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { encodeContactCard } from "zerno-core";
 import { useDocument, useDocuments, ZernoProvider } from "zerno-react";
 
 import { useRing } from "./hooks/use-ring.js";
@@ -85,7 +84,9 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
     }
   });
 
-  const [me] = useState(() => service.zerno.identity.me());
+  const [contactCard] = useState(() =>
+    service.zerno.identity.contactCard("string"),
+  );
 
   if (terminal.columns < 60 || terminal.rows < 20)
     return <Text>Minimum terminal size is 60x20.</Text>;
@@ -116,7 +117,7 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
         <Box flexDirection="row" justifyContent="space-between">
           <Text color="#00FFFF">zerno-chat</Text>
           <Text color="yellow" wrap="wrap">
-            {shrinkIdentifier(encodeContactCard(me.contactCard), 24, 16)}
+            {shrinkIdentifier(contactCard, 24, 16)}
           </Text>
         </Box>
         <Box flexDirection="row" justifyContent="space-between">

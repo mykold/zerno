@@ -11,7 +11,6 @@ export {
   decodeContactCard,
 } from "./identity.js";
 
-export type { Identity } from "./identity.js";
 export type { Group, GroupMember } from "./groups.js";
 
 export type {
@@ -20,5 +19,9 @@ export type {
   PeerId,
   Repo,
 } from "@automerge/automerge-repo";
-export { Identifier, Access, ContactCard } from "@automerge/automerge-repo-keyhive";
+export {
+  Identifier,
+  Access,
+  ContactCard,
+} from "@automerge/automerge-repo-keyhive";
 export type { DocMember } from "@automerge/automerge-repo-keyhive";

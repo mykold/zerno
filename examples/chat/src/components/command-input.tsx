@@ -4,7 +4,6 @@ import TextInput from "ink-text-input";
 import clipboard from "clipboardy";
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 import { Access, decodeContactCard, encodeContactCard } from "zerno-core";
-import type { Identity } from "zerno-core";
 import { useDocHandle } from "zerno-react";
 
 import { useToast } from "../hooks/use-toast.js";
@@ -95,7 +94,7 @@ function createCommands({
   ): Promise<void> {
     switch (args.next()) {
       case "contact-card": {
-        const text = encodeContactCard(service.zerno.identity.me().contactCard);
+        const text = service.zerno.identity.contactCard("string");
         clipboard.writeSync(text);
         sendToast("success", "Contact card copied to clipboard");
         break;

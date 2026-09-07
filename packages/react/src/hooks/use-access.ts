@@ -22,7 +22,7 @@ export function useAccess(id: AutomergeUrl | undefined): Access | undefined {
     () => {
       if (!id) return undefined;
       return zerno.access
-        .getAccess({ id, member: zerno.identity.me().id })
+        .getAccess({ id, member: zerno.identity.id() })
         .catch((err) => {
           console.error("Failed to fetch Keyhive access:", err);
           throw err;

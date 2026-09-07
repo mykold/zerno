@@ -9,7 +9,7 @@ import {
 import { encodeContactCard } from "zerno-core"
 import { useDocSelector } from "zerno-react"
 import { toast } from "sonner"
-import { ContactCard, uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
+import { ContactCard } from "@automerge/automerge-repo-keyhive"
 
 import {
   SidebarTrigger,
@@ -119,8 +119,8 @@ function CopyContactCardTooltip({ contactCard }: { contactCard: ContactCard }) {
 function AppSidebarFooter() {
   const { service } = useAppContext()
 
-  const [me] = useState(() => service.zerno.identity.me())
-  const id = uint8ArrayToHex(me.id.toBytes())
+  const [id] = useState(() => service.zerno.identity.id("string"))
+  const [contactCard] = useState(() => service.zerno.identity.contactCard())
 
   return (
     <SidebarFooter className="bg-sidebar-accent/50">
@@ -137,7 +137,7 @@ function AppSidebarFooter() {
           <IdentifierTooltip id={id} />
           <div className="ml-auto flex items-center gap-1 group-data-[collapsible=icon]:hidden">
             <ThemeTooltip />
-            <CopyContactCardTooltip contactCard={me.contactCard} />
+            <CopyContactCardTooltip contactCard={contactCard} />
           </div>
         </div>
       </TooltipProvider>

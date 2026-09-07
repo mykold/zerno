@@ -51,10 +51,10 @@ export class WorkspaceService {
     const phonebook = await this.phonebooks.create()
 
     // Add current user contact card to the phonebook
-    const me = this.zerno.identity.me()
+    const contactCard = this.zerno.identity.contactCard()
     await this.phonebooks.add({
       phonebookId: phonebook.url,
-      contactCard: me.contactCard,
+      contactCard,
     })
 
     // Create the group and join it as admin, so the creator can manage it
@@ -62,7 +62,7 @@ export class WorkspaceService {
     const group = await this.zerno.groups.create()
     await this.zerno.groups.grant({
       group,
-      contactCard: me.contactCard,
+      contactCard,
       access: Access.admin(),
     })
 

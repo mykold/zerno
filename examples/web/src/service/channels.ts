@@ -2,7 +2,6 @@ import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo"
 import { ImmutableString } from "@automerge/automerge-repo"
 import { Access } from "zerno-core"
 import type { Zerno } from "zerno-core"
-import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
 
 import type { ZernoMessageList } from "./messages.js"
 
@@ -35,7 +34,7 @@ export class ChannelService {
     channel: DocHandle<ZernoChannel>
     content: string
   }) {
-    const author = uint8ArrayToHex(this.zerno.identity.me().id.toBytes())
+    const author = this.zerno.identity.id("string")
 
     let messageList: DocHandle<ZernoMessageList>
 
