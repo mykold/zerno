@@ -18,6 +18,7 @@ import {
 
 import { useAppContext } from "@/app-context"
 import { useMessages } from "@/hooks/use-messages"
+import { useMessageEditing } from "@/hooks/use-message-editing"
 import { useNewMessageSound } from "@/hooks/use-message-sound"
 import { useNewMessageTitle } from "@/hooks/use-new-message-title"
 import { identifierColor, formatDay, formatMessageTimestamp } from "@/utilities"
@@ -368,6 +369,9 @@ function MessageBubble({
 
 interface ChatMessageEntryProps extends ChatTimelineEntry {
   messageList: DocHandle<ZernoMessageList> | undefined
+  isEditing: boolean
+  startEditing: (id: string) => void
+  stopEditing: () => void
 }
 
 function ChatMessageEntry({
@@ -377,9 +381,10 @@ function ChatMessageEntry({
   isAuthorLead,
   dateLabel,
   bottomSpacing,
+  isEditing,
+  startEditing,
+  stopEditing,
 }: ChatMessageEntryProps) {
-  const [isEditing, setIsEditing] = useState(false)
-
   return (
     <div
       className={cn(
@@ -419,7 +424,7 @@ function ChatMessageEntry({
             <MessageInlineEditor
               message={message}
               messageList={messageList}
-              onClose={() => setIsEditing(false)}
+              onClose={stopEditing}
             />
           ) : (
             <MessageBubble
@@ -427,7 +432,7 @@ function ChatMessageEntry({
               messageList={messageList}
               isOwn={isOwn}
               isAuthorLead={isAuthorLead}
-              onEdit={() => setIsEditing(true)}
+              onEdit={() => startEditing(message.id)}
             />
           )}
         </MessageContent>
@@ -489,6 +494,8 @@ export function ChannelMessageList({
     [messages, myId]
   )
 
+  const { editingId, startEditing, stopEditing } = useMessageEditing()
+
   if (messages.length === 0) {
     return (
       <Empty className="flex-1">
@@ -514,7 +521,13 @@ export function ChannelMessageList({
       initialTopMostItemIndex={entries.length - 1}
       computeItemKey={(_, entry) => entry.message.id}
       itemContent={(_, entry) => (
-        <ChatMessageEntry {...entry} messageList={myMessageList} />
+        <ChatMessageEntry
+          {...entry}
+          messageList={myMessageList}
+          isEditing={editingId === entry.message.id}
+          startEditing={startEditing}
+          stopEditing={stopEditing}
+        />
       )}
     />
   )
