@@ -350,7 +350,7 @@ function ChatMessageEntry({
             />
           ) : (
             <div className="group/row flex min-w-0">
-              <Bubble variant="muted" className="min-w-12">
+              <Bubble variant="chat" className="min-w-12">
                 {!isAuthorLead && (
                   <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
                     {formatMessageTimestamp(message.createdAt).time}
