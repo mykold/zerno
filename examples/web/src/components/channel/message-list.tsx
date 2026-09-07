@@ -9,13 +9,7 @@ import {
 import { useDocHandle, useDocuments } from "zerno-react"
 import type { DocHandle } from "@automerge/automerge-repo"
 import { Virtuoso } from "react-virtuoso"
-import {
-  CircleCheckIcon,
-  CircleXIcon,
-  MessageCircleIcon,
-  PencilIcon,
-  Trash2Icon,
-} from "lucide-react"
+import { MessageCircleIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import { useAppContext } from "@/app-context"
 import { useMessages } from "@/hooks/use-messages"
@@ -47,6 +41,7 @@ import {
 } from "@/components/ui/message"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 
 // MARK: DayDivider
 
@@ -155,35 +150,38 @@ function MessageInlineEditor({
   }
 
   return (
-    <Bubble variant="muted" className="min-w-12">
+    <Bubble variant="outline" className="min-w-12">
       <BubbleContent className="py-1 wrap-anywhere">
         <Textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus
+          onFocus={(e) =>
+            e.currentTarget.setSelectionRange(draft.length, draft.length)
+          }
           className="min-h-0 w-auto max-w-full resize-none border-none p-0 leading-relaxed focus-visible:ring-0 dark:bg-transparent"
         />
+        <div className="flex gap-3">
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-muted-foreground"
+            onClick={onClose}
+          >
+            escape to cancel
+          </Button>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-muted-foreground"
+            onClick={handleSave}
+            disabled={!messageList || !draft.trim()}
+          >
+            enter to save
+          </Button>
+        </div>
       </BubbleContent>
-      <div className="absolute right-0 bottom-full z-10 flex items-center gap-0.5 rounded-lg border bg-background p-0.5 shadow-sm">
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          aria-label="Cancel editing"
-          onClick={onClose}
-        >
-          <CircleXIcon className="text-destructive" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          aria-label="Save changes"
-          onClick={handleSave}
-          disabled={!messageList || !draft.trim()}
-        >
-          <CircleCheckIcon />
-        </Button>
-      </div>
     </Bubble>
   )
 }
@@ -308,7 +306,12 @@ function ChatMessageEntry({
   const [isEditing, setIsEditing] = useState(false)
 
   return (
-    <div className={bottomSpacingClass[bottomSpacing]}>
+    <div
+      className={cn(
+        bottomSpacingClass[bottomSpacing],
+        isEditing && "-mx-6 rounded-md bg-amber-500/10 px-6"
+      )}
+    >
       {dateLabel && <DayDivider date={dateLabel} />}
       <Message>
         {isAuthorLead ? (
