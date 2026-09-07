@@ -41,12 +41,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import {
-  Message,
-  MessageAvatar,
-  MessageContent,
-  MessageHeader,
-} from "@/components/ui/message"
+import { Message, MessageContent, MessageHeader } from "@/components/ui/message"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -186,8 +181,8 @@ function MessageInlineEditor({
   }
 
   return (
-    <Bubble variant="outline" className="min-w-12">
-      <BubbleContent className="py-1 wrap-anywhere">
+    <Bubble variant="outline">
+      <BubbleContent className="py-1">
         <Textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -245,8 +240,6 @@ function MessageExpandableContent({ content }: MessageExpandableContentProps) {
         setVisibleLength(open ? MESSAGE_CHUNK_LENGTH * 2 : MESSAGE_CHUNK_LENGTH)
       }
     >
-      {/* Every state renders one slice as a single markdown node: splitting
-          the content across two nodes would break blocks across the cut. */}
       {!isExpanded && (
         <Markdown>{`${content.slice(0, MESSAGE_CHUNK_LENGTH)}…`}</Markdown>
       )}
@@ -307,13 +300,13 @@ function MessageBubble({
   }
 
   const bubble = (
-    <Bubble variant="chat" className="min-w-12">
+    <Bubble variant="chat">
       {!isAuthorLead && (
         <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
           {formatMessageTimestamp(message.createdAt).time}
         </span>
       )}
-      <BubbleContent className="py-1 wrap-anywhere">
+      <BubbleContent className="px-2.5 py-1 wrap-anywhere">
         <MessageExpandableContent content={message.content.val} />
         {message.editedAt && (
           <span className="text-xs text-muted-foreground"> (edited)</span>
@@ -406,18 +399,15 @@ const ChatMessageEntry = memo(function ChatMessageEntry({
       {dateLabel && <DayDivider date={dateLabel} />}
       <Message>
         {isAuthorLead && (
-          <MessageAvatar>
-            <Avatar className="h-8 w-8">
-              <AvatarFallback
-                className="text-xs font-medium text-white"
-                style={{ backgroundColor: identifierColor(message.author) }}
-              >
-                {message.author.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </MessageAvatar>
+          <Avatar>
+            <AvatarFallback
+              className="text-xs font-medium text-white"
+              style={{ backgroundColor: identifierColor(message.author) }}
+            >
+              {message.author.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         )}
-        {/* Standing in for the avatar column: min-w-8 plus the row's gap-2 */}
         <MessageContent className={cn("gap-2", !isAuthorLead && "ps-10")}>
           {isAuthorLead && (
             <MessageHeader className="gap-2">
