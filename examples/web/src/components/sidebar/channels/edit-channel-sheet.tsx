@@ -34,11 +34,13 @@ export function EditChannelSheet({
   const channelName = useDocSelector(channel, (c) => c.name)
 
   const [name, setName] = useState(channelName)
-  const handleChannelEdit = async () => {
+
+  const handleChannelEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
     try {
       await service.workspaces.editChannel({
         channel,
-        name,
+        name: name.trim(),
       })
     } catch (e) {
       const message = (e as Error).message
@@ -56,19 +58,27 @@ export function EditChannelSheet({
           <SheetTitle>Edit channel name</SheetTitle>
           <SheetDescription>Click outside to close.</SheetDescription>
         </SheetHeader>
-        <div className="grid flex-1 auto-rows-min gap-6 px-4">
-          <div className="grid gap-3">
-            <Label htmlFor="channel-name">Name</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={channelName}
-            />
+        <form onSubmit={handleChannelEdit} className="contents">
+          <div className="grid flex-1 auto-rows-min gap-6 px-4">
+            <div className="grid gap-3">
+              <Label htmlFor="channel-name">Name</Label>
+              <Input
+                id="channel-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+              />
+            </div>
           </div>
-        </div>
-        <SheetFooter>
-          <Button onClick={handleChannelEdit}>Save changes</Button>
-        </SheetFooter>
+          <SheetFooter>
+            <Button
+              type="submit"
+              disabled={!name.trim() || name.trim() === channelName}
+            >
+              Save changes
+            </Button>
+          </SheetFooter>
+        </form>
       </SheetContent>
     </Sheet>
   )
