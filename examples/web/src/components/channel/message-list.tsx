@@ -78,8 +78,8 @@ interface ChatTimelineEntry {
   isAuthorLead: boolean
   /** Day label to render above the message, when the day changed */
   dateLabel?: string
-  /** Trailing gap: same minute, a new minute, or a new run */
-  bottomSpacing: "compact" | "normal" | "relaxed"
+  /** Trailing gap: inside a run by one author, or after that run ends */
+  bottomSpacing: "compact" | "relaxed"
 }
 
 // Long messages are revealed one chunk at a time, so a single message can
@@ -92,7 +92,6 @@ const MESSAGE_CHUNK_LENGTH = 2000
 
 const bottomSpacingClass = {
   compact: "pb-1",
-  normal: "pb-2",
   relaxed: "pb-6",
 } as const
 
@@ -109,16 +108,12 @@ function buildTimelineEntries(
       !next ||
       next.author !== message.author ||
       formatDay(next.createdAt) !== day
-    const endsGroup =
-      endsRun ||
-      Math.floor(next.createdAt / 60_000) !==
-        Math.floor(message.createdAt / 60_000)
     return {
       message,
       isOwn: message.author === myId,
       isAuthorLead: newDay || previous.author !== message.author,
       dateLabel: newDay && previous ? day : undefined,
-      bottomSpacing: endsRun ? "relaxed" : endsGroup ? "normal" : "compact",
+      bottomSpacing: endsRun ? "relaxed" : "compact",
     }
   })
 }
