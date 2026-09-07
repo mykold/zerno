@@ -1,6 +1,8 @@
 import {
   forwardRef,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
@@ -8,7 +10,7 @@ import {
 } from "react"
 import { useDocHandle, useDocuments } from "zerno-react"
 import type { DocHandle } from "@automerge/automerge-repo"
-import { Virtuoso } from "react-virtuoso"
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso"
 import {
   EllipsisIcon,
   MessageCircleIcon,
@@ -494,7 +496,24 @@ export function ChannelMessageList({
     [messages, myId]
   )
 
-  const { editingId, startEditing, stopEditing } = useMessageEditing()
+  const { editingId, startEditing, stopEditing, lastOwnMessageIdRef } =
+    useMessageEditing()
+  // Published for the composer, which edits this message on ArrowUp. A ref
+  // rather than state so a new message does not re-render the composer.
+  const lastOwnMessageId =
+    entries.findLast((entry) => entry.isOwn)?.message.id ?? null
+  useEffect(() => {
+    lastOwnMessageIdRef.current = lastOwnMessageId
+  }, [lastOwnMessageId, lastOwnMessageIdRef])
+
+  // ArrowUp can open an editor that is scrolled far above the composer
+  const virtuosoRef = useRef<VirtuosoHandle>(null)
+  useEffect(() => {
+    if (!editingId) return
+    const index = entries.findIndex((entry) => entry.message.id === editingId)
+    if (index < 0) return
+    virtuosoRef.current?.scrollIntoView({ index, behavior: "smooth" })
+  }, [editingId, entries])
 
   if (messages.length === 0) {
     return (
@@ -514,6 +533,7 @@ export function ChannelMessageList({
 
   return (
     <Virtuoso
+      ref={virtuosoRef}
       className="scrollbar-none flex-1"
       data={entries}
       components={{ List: VirtuosoList, Header: VirtuosoTopSpacer }}

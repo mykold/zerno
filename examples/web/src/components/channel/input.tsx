@@ -6,6 +6,7 @@ import { Access, useAccess, useDocHandle } from "zerno-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAppContext } from "@/app-context"
+import { useMessageEditing } from "@/hooks/use-message-editing"
 import type { ZernoChannel } from "@/service"
 
 // MARK: ChannelInputSkeleton
@@ -30,6 +31,7 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   const { service } = useAppContext()
   const [content, setContent] = useState("")
   const myAccess = useAccess(selectedChannelUrl)
+  const { startEditing, composerRef, lastOwnMessageIdRef } = useMessageEditing()
 
   const formId = useId()
   const channel = useDocHandle<ZernoChannel>(selectedChannelUrl, {
@@ -54,6 +56,13 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Only on an empty composer, where ArrowUp has nothing else to move over
+    if (e.key === "ArrowUp" && !content && lastOwnMessageIdRef.current) {
+      e.preventDefault()
+      startEditing(lastOwnMessageIdRef.current)
+      return
+    }
+
     if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) {
       return
     }
@@ -70,6 +79,7 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
     <footer className="shrink-0 bg-background p-2">
       <form id={formId} onSubmit={handleSendMessage} className="flex gap-2">
         <Textarea
+          ref={composerRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
