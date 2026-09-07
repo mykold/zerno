@@ -354,7 +354,9 @@ function MessageBubble({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>{bubble}</ContextMenuTrigger>
+      <ContextMenuTrigger asChild className="select-text">
+        {bubble}
+      </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={onEdit}>
           <PencilIcon />
