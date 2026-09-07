@@ -138,7 +138,7 @@ function MessageInlineEditor({
   onClose,
 }: MessageInlineEditorProps) {
   const { service } = useAppContext()
-  const [draft, setDraft] = useState(message.content)
+  const [draft, setDraft] = useState(message.content.val)
 
   const handleSave = () => {
     if (!messageList) return
@@ -358,7 +358,7 @@ function ChatMessageEntry({
                   </span>
                 )}
                 <BubbleContent className="py-1 wrap-anywhere">
-                  <MessageExpandableContent content={message.content} />
+                  <MessageExpandableContent content={message.content.val} />
                   {message.editedAt && (
                     <span className="text-xs text-muted-foreground">
                       (edited)

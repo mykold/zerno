@@ -1,4 +1,5 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo"
+import { ImmutableString } from "@automerge/automerge-repo"
 import { Access } from "zerno-core"
 import type { Zerno } from "zerno-core"
 import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
@@ -61,7 +62,7 @@ export class ChannelService {
       d.messages.push({
         id: crypto.randomUUID(), // TODO
         author,
-        content: args.content,
+        content: new ImmutableString(args.content),
         createdAt: Date.now(),
       })
     )
@@ -82,8 +83,9 @@ export class ChannelService {
     args.messageList.change((d) => {
       const message = d.messages.find((message) => message.id === args.id)
       if (!message) throw new Error("Message not found")
-      if (message.content === args.content.trim()) return
-      message.content = args.content.trim()
+      const content = args.content.trim()
+      if (message.content.val === content) return
+      message.content = new ImmutableString(content)
       message.editedAt = Date.now()
     })
   }
