@@ -1,18 +1,10 @@
 import { createContext, useCallback, useContext, useRef, useState } from "react"
 
 interface MessageEditingContextValue {
-  /** Id of the message currently open in the inline editor */
   editingId: string | null
   startEditing: (id: string) => void
-  /** Closes the editor and hands focus back to the composer */
   stopEditing: () => void
-  /** The composer registers itself here so editing can return focus to it */
   composerRef: React.RefObject<HTMLTextAreaElement | null>
-  /**
-   * Newest message written by us, kept in a ref so the message list can
-   * publish it on every render without re-rendering the composer. The
-   * composer reads it to open the editor on ArrowUp.
-   */
   lastOwnMessageIdRef: React.RefObject<string | null>
 }
 
@@ -31,7 +23,6 @@ export function MessageEditingProvider({
   const lastOwnMessageIdRef = useRef<string | null>(null)
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
 
-  // Stable so a memoized message row is not re-rendered by its identity
   const stopEditing = useCallback(() => {
     setEditingId(null)
     composerRef.current?.focus()

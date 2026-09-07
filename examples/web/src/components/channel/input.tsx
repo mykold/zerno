@@ -56,7 +56,6 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Only on an empty composer, where ArrowUp has nothing else to move over
     if (e.key === "ArrowUp" && !content && lastOwnMessageIdRef.current) {
       e.preventDefault()
       startEditing(lastOwnMessageIdRef.current)

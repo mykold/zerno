@@ -111,10 +111,6 @@ const bottomSpacingClass = {
   relaxed: "pb-6",
 } as const
 
-/**
- * Local midnight for a timestamp, so two messages can be compared by day
- * without formatting either of them.
- */
 function dayKey(timestamp: number): number {
   const date = new Date(timestamp)
   date.setHours(0, 0, 0, 0)
@@ -140,7 +136,6 @@ function buildTimelineEntries(
       message,
       isOwn: message.author === myId,
       isAuthorLead: newDay || messages[index - 1].author !== message.author,
-      // Only the rows that actually draw a divider pay for the formatting
       dateLabel: newDay && index > 0 ? formatDay(message.createdAt) : undefined,
       bottomSpacing: endsRun ? "relaxed" : "compact",
     }
@@ -198,14 +193,11 @@ function MessageInlineEditor({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus
-          // Editing starts where the text ends, not in front of it
           onFocus={(e) =>
             e.currentTarget.setSelectionRange(draft.length, draft.length)
           }
           className="min-h-0 w-auto max-w-full resize-none border-none p-0 leading-relaxed focus-visible:ring-0 dark:bg-transparent"
         />
-        {/* Same affordance as "Show more": the shortcut is the label, and
-            clicking it works for anyone without a keyboard. */}
         <div className="flex gap-3">
           <Button
             variant="link"
@@ -300,16 +292,6 @@ interface MessageBubbleProps {
   onEdit: () => void
 }
 
-/**
- * The message itself, plus its actions when it is ours, reachable however
- * the reader is holding the machine: the button for a mouse, a right click
- * for a trackpad, a long press on touch (Radix turns that into the same
- * context menu), and Tab for a keyboard.
- *
- * The bubble is already the positioning context and already carries the
- * width bounds, so both menus hang off it directly rather than off a
- * wrapper: one node fewer on every row of a virtualized list.
- */
 function MessageBubble({
   message,
   messageList,
@@ -416,8 +398,6 @@ const ChatMessageEntry = memo(function ChatMessageEntry({
       className={cn(
         "group/row",
         bottomSpacingClass[bottomSpacing],
-        // The row being edited has to be findable at a glance, and the theme
-        // carries no accent hue of its own to tint it with.
         isEditing && "-mx-6 rounded-md bg-amber-500/10 px-6"
       )}
     >
@@ -524,15 +504,12 @@ export function ChannelMessageList({
 
   const { editingId, startEditing, stopEditing, lastOwnMessageIdRef } =
     useMessageEditing()
-  // Published for the composer, which edits this message on ArrowUp. A ref
-  // rather than state so a new message does not re-render the composer.
   const lastOwnMessageId =
     entries.findLast((entry) => entry.isOwn)?.message.id ?? null
   useEffect(() => {
     lastOwnMessageIdRef.current = lastOwnMessageId
   }, [lastOwnMessageId, lastOwnMessageIdRef])
 
-  // ArrowUp can open an editor that is scrolled far above the composer
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   useEffect(() => {
     if (!editingId) return
