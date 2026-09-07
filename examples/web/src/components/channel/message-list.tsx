@@ -1,5 +1,4 @@
 import {
-  Fragment,
   forwardRef,
   useMemo,
   useState,
@@ -8,7 +7,7 @@ import {
   type ReactNode,
 } from "react"
 import { useDocHandle, useDocuments } from "zerno-react"
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo"
+import type { DocHandle } from "@automerge/automerge-repo"
 import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive"
 import { Virtuoso } from "react-virtuoso"
 import {
@@ -35,7 +34,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Bubble, BubbleContent, BubbleGroup } from "@/components/ui/bubble"
+import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   Message,
   MessageAvatar,
@@ -47,57 +51,106 @@ import { Textarea } from "@/components/ui/textarea"
 
 // MARK: DayDivider
 
-function DayDivider({ label }: { label: string }) {
+interface DayDividerProps {
+  date: string
+}
+
+function DayDivider({ date }: DayDividerProps) {
   return (
-    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+    <div className="flex items-center gap-3 py-2 text-xs text-muted-foreground">
       <span className="h-px flex-1 bg-border" />
-      {label}
+      {date}
       <span className="h-px flex-1 bg-border" />
     </div>
   )
 }
 
-// MARK: ChannelMessageRow
+// MARK: ChatTimelineEntry
 
-interface ChannelMessageRowProps {
+/**
+ * One message plus everything about it that depends on its neighbours.
+ * Virtuoso renders one item per entry, so a long run by a single author
+ * never collapses into one unboundedly tall list item.
+ */
+interface ChatTimelineEntry {
   message: ZernoMessage
-  messageList: DocHandle<ZernoMessageList> | undefined
   isOwn: boolean
-  /** Rows after the first one show their timestamp only on hover */
-  showTimestamp: boolean
+  /** First message of a run: renders the avatar and the header */
+  isAuthorLead: boolean
+  /** Day label to render above the message, when the day changed */
+  dateLabel?: string
+  /** Trailing gap: same minute, a new minute, or a new run */
+  bottomSpacing: "compact" | "normal" | "relaxed"
 }
 
-function ChannelMessageRow({
+// Long messages are revealed one chunk at a time, so a single message can
+// neither take over the viewport nor make one click parse an unbounded
+// amount of markdown.
+// ponytail: fully expanding a huge message still materialises all of it;
+// splitting one message across several virtualized rows is the upgrade path.
+// TODO: Make this configurable
+const MESSAGE_CHUNK_LENGTH = 2000
+
+const bottomSpacingClass = {
+  compact: "pb-1",
+  normal: "pb-2",
+  relaxed: "pb-6",
+} as const
+
+function buildTimelineEntries(
+  messages: ZernoMessage[],
+  myId: string
+): ChatTimelineEntry[] {
+  return messages.map((message, index) => {
+    const previous = messages[index - 1]
+    const next = messages[index + 1]
+    const day = formatDay(message.createdAt)
+    const newDay = !previous || formatDay(previous.createdAt) !== day
+    const endsRun =
+      !next ||
+      next.author !== message.author ||
+      formatDay(next.createdAt) !== day
+    const endsGroup =
+      endsRun ||
+      Math.floor(next.createdAt / 60_000) !==
+        Math.floor(message.createdAt / 60_000)
+    return {
+      message,
+      isOwn: message.author === myId,
+      isAuthorLead: newDay || previous.author !== message.author,
+      dateLabel: newDay && previous ? day : undefined,
+      bottomSpacing: endsRun ? "relaxed" : endsGroup ? "normal" : "compact",
+    }
+  })
+}
+
+// MARK: MessageInlineEditor
+
+interface MessageInlineEditorProps {
+  message: ZernoMessage
+  messageList: DocHandle<ZernoMessageList> | undefined
+  onClose: () => void
+}
+
+function MessageInlineEditor({
   message,
   messageList,
-  isOwn,
-  showTimestamp,
-}: ChannelMessageRowProps) {
+  onClose,
+}: MessageInlineEditorProps) {
   const { service } = useAppContext()
-  const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(message.content)
-
-  const startEditing = () => {
-    setDraft(message.content)
-    setIsEditing(true)
-  }
 
   const handleSave = () => {
     if (!messageList) return
     const content = draft.trim()
     if (!content) return
     service.channels.editMessage({ messageList, id: message.id, content })
-    setIsEditing(false)
-  }
-
-  const handleDelete = () => {
-    if (!messageList) return
-    service.channels.deleteMessage({ messageList, id: message.id })
+    onClose()
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Escape") {
-      setIsEditing(false)
+      onClose()
       return
     }
     if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) {
@@ -107,168 +160,224 @@ function ChannelMessageRow({
     handleSave()
   }
 
-  if (isEditing) {
-    return (
-      <Bubble variant="muted" className="min-w-12">
-        <BubbleContent className="py-1 wrap-anywhere">
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoFocus
-            className="min-h-0 w-auto max-w-full resize-none border-none p-0 leading-relaxed focus-visible:ring-0 dark:bg-transparent"
-          />
-        </BubbleContent>
-        <div className="absolute right-0 bottom-full z-10 flex items-center gap-0.5 rounded-lg border bg-background p-0.5 shadow-sm">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Cancel editing"
-            onClick={() => setIsEditing(false)}
-          >
-            <CircleXIcon className="text-destructive" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Save changes"
-            onClick={handleSave}
-            disabled={!messageList || !draft.trim()}
-          >
-            <CircleCheckIcon />
-          </Button>
-        </div>
-      </Bubble>
-    )
+  return (
+    <Bubble variant="muted" className="min-w-12">
+      <BubbleContent className="py-1 wrap-anywhere">
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="min-h-0 w-auto max-w-full resize-none border-none p-0 leading-relaxed focus-visible:ring-0 dark:bg-transparent"
+        />
+      </BubbleContent>
+      <div className="absolute right-0 bottom-full z-10 flex items-center gap-0.5 rounded-lg border bg-background p-0.5 shadow-sm">
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Cancel editing"
+          onClick={onClose}
+        >
+          <CircleXIcon className="text-destructive" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Save changes"
+          onClick={handleSave}
+          disabled={!messageList || !draft.trim()}
+        >
+          <CircleCheckIcon />
+        </Button>
+      </div>
+    </Bubble>
+  )
+}
+
+// MARK: MessageExpandableContent
+
+interface MessageExpandableContentProps {
+  content: string
+}
+
+function MessageExpandableContent({ content }: MessageExpandableContentProps) {
+  const [visibleLength, setVisibleLength] = useState(MESSAGE_CHUNK_LENGTH)
+
+  const isExpanded = visibleLength > MESSAGE_CHUNK_LENGTH
+  const hasMore = isExpanded && visibleLength < content.length
+
+  if (content.length <= MESSAGE_CHUNK_LENGTH) {
+    return <Markdown>{content}</Markdown>
   }
 
   return (
-    <div className="group/row flex min-w-0">
-      <Bubble variant="muted" className="min-w-12">
-        {showTimestamp && (
-          <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
-            {formatMessageTimestamp(message.createdAt).time}
-          </span>
+    <Collapsible
+      open={isExpanded}
+      onOpenChange={(open) =>
+        setVisibleLength(open ? MESSAGE_CHUNK_LENGTH * 2 : MESSAGE_CHUNK_LENGTH)
+      }
+    >
+      {/* Every state renders one slice as a single markdown node: splitting
+          the content across two nodes would break blocks across the cut. */}
+      {!isExpanded && (
+        <Markdown>{`${content.slice(0, MESSAGE_CHUNK_LENGTH)}…`}</Markdown>
+      )}
+      <CollapsibleContent>
+        <Markdown>
+          {hasMore ? `${content.slice(0, visibleLength)}…` : content}
+        </Markdown>
+      </CollapsibleContent>
+      <div className="flex gap-3">
+        {hasMore && (
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-muted-foreground"
+            onClick={() =>
+              setVisibleLength(visibleLength + MESSAGE_CHUNK_LENGTH)
+            }
+          >
+            Show more
+          </Button>
         )}
-        <BubbleContent className="py-1 wrap-anywhere">
-          <Markdown>{message.content}</Markdown>
-          {message.editedAt && (
-            <span className="text-xs text-muted-foreground">(edited)</span>
-          )}
-        </BubbleContent>
-        {isOwn && (
-          <div className="pointer-events-none absolute right-0 bottom-full z-10 flex items-center gap-0.5 rounded-lg border bg-background p-0.5 opacity-0 shadow-sm group-hover/bubble:pointer-events-auto group-hover/bubble:opacity-100 has-focus-visible:pointer-events-auto has-focus-visible:opacity-100">
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Edit message"
-              onClick={startEditing}
-            >
-              <PencilIcon />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Delete message"
-              onClick={handleDelete}
-              disabled={!messageList}
-            >
-              <Trash2Icon />
-            </Button>
-          </div>
-        )}
-      </Bubble>
+        <CollapsibleTrigger asChild>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-muted-foreground"
+          >
+            {isExpanded ? "Collapse" : "Show more"}
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+    </Collapsible>
+  )
+}
+
+// MARK: MessageActionToolbar
+
+interface MessageActionToolbarProps {
+  message: ZernoMessage
+  messageList: DocHandle<ZernoMessageList> | undefined
+  onEdit: () => void
+}
+
+function MessageActionToolbar({
+  message,
+  messageList,
+  onEdit,
+}: MessageActionToolbarProps) {
+  const { service } = useAppContext()
+
+  const handleDelete = () => {
+    if (!messageList) return
+    service.channels.deleteMessage({ messageList, id: message.id })
+  }
+
+  return (
+    <div className="pointer-events-none absolute right-0 bottom-full z-10 flex items-center gap-0.5 rounded-lg border bg-background p-0.5 opacity-0 shadow-sm group-hover/bubble:pointer-events-auto group-hover/bubble:opacity-100 has-focus-visible:pointer-events-auto has-focus-visible:opacity-100">
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Edit message"
+        onClick={onEdit}
+      >
+        <PencilIcon />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Delete message"
+        onClick={handleDelete}
+        disabled={!messageList}
+      >
+        <Trash2Icon />
+      </Button>
     </div>
   )
 }
 
-// MARK: ChannelMessageRun
+// MARK: ChatMessageEntry
 
-interface ChannelMessageRunProps {
-  author: string
-  createdAt: number
-  messages: ZernoMessage[]
-  messageListUrl?: AutomergeUrl
-  myId?: string
+interface ChatMessageEntryProps extends ChatTimelineEntry {
+  messageList: DocHandle<ZernoMessageList> | undefined
 }
 
-function ChannelMessageRun({
-  author,
-  createdAt,
-  messages,
-  messageListUrl,
-  myId,
-}: ChannelMessageRunProps) {
-  const isOwn = author === myId
-  const messageList = useDocHandle<ZernoMessageList>(
-    isOwn ? messageListUrl : undefined,
-    { suspense: false }
-  )
-
-  // Split messages into per-minute bubble groups
-  const groups = useMemo(() => {
-    const groups: ZernoMessage[][] = []
-    for (const message of messages) {
-      const last = groups[groups.length - 1]
-      if (
-        last &&
-        Math.floor(last[0].createdAt / 60_000) ===
-          Math.floor(message.createdAt / 60_000)
-      ) {
-        last.push(message)
-      } else {
-        groups.push([message])
-      }
-    }
-    return groups
-  }, [messages])
+function ChatMessageEntry({
+  message,
+  messageList,
+  isOwn,
+  isAuthorLead,
+  dateLabel,
+  bottomSpacing,
+}: ChatMessageEntryProps) {
+  const [isEditing, setIsEditing] = useState(false)
 
   return (
-    <Message>
-      <MessageAvatar>
-        <Avatar className="h-8 w-8">
-          <AvatarFallback
-            className="text-xs font-medium text-white"
-            style={{ backgroundColor: identifierColor(author) }}
-          >
-            {author.substring(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      </MessageAvatar>
-      <MessageContent className="gap-2">
-        <MessageHeader className="gap-2">
-          <span
-            className="font-semibold"
-            style={{ color: identifierColor(author, true) }}
-          >
-            {author}
-          </span>
-          <MessageTimestamp timestamp={createdAt} />
-        </MessageHeader>
-        {groups.map((group, groupIndex) => {
-          const divider =
-            groupIndex > 0 &&
-            formatDay(group[0].createdAt) !==
-              formatDay(groups[groupIndex - 1][0].createdAt)
-          return (
-            <Fragment key={group[0].id}>
-              {divider && <DayDivider label={formatDay(group[0].createdAt)} />}
-              <BubbleGroup className="gap-1">
-                {group.map((message, messageIndex) => (
-                  <ChannelMessageRow
-                    key={message.id}
+    <div className={bottomSpacingClass[bottomSpacing]}>
+      {dateLabel && <DayDivider date={dateLabel} />}
+      <Message>
+        {isAuthorLead ? (
+          <MessageAvatar>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback
+                className="text-xs font-medium text-white"
+                style={{ backgroundColor: identifierColor(message.author) }}
+              >
+                {message.author.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </MessageAvatar>
+        ) : (
+          <div className="w-8 shrink-0" />
+        )}
+        <MessageContent className="gap-2">
+          {isAuthorLead && (
+            <MessageHeader className="gap-2">
+              <span
+                className="font-semibold"
+                style={{ color: identifierColor(message.author, true) }}
+              >
+                {message.author}
+              </span>
+              <MessageTimestamp timestamp={message.createdAt} />
+            </MessageHeader>
+          )}
+          {isEditing ? (
+            <MessageInlineEditor
+              message={message}
+              messageList={messageList}
+              onClose={() => setIsEditing(false)}
+            />
+          ) : (
+            <div className="group/row flex min-w-0">
+              <Bubble variant="muted" className="min-w-12">
+                {!isAuthorLead && (
+                  <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
+                    {formatMessageTimestamp(message.createdAt).time}
+                  </span>
+                )}
+                <BubbleContent className="py-1 wrap-anywhere">
+                  <MessageExpandableContent content={message.content} />
+                  {message.editedAt && (
+                    <span className="text-xs text-muted-foreground">
+                      (edited)
+                    </span>
+                  )}
+                </BubbleContent>
+                {isOwn && (
+                  <MessageActionToolbar
                     message={message}
                     messageList={messageList}
-                    isOwn={isOwn}
-                    showTimestamp={groupIndex > 0 || messageIndex > 0}
+                    onEdit={() => setIsEditing(true)}
                   />
-                ))}
-              </BubbleGroup>
-            </Fragment>
-          )
-        })}
-      </MessageContent>
-    </Message>
+                )}
+              </Bubble>
+            </div>
+          )}
+        </MessageContent>
+      </Message>
+    </div>
   )
 }
 
@@ -309,30 +418,22 @@ export function ChannelMessageList({
     suspense: false,
   })
 
+  // Editing and deleting only ever touch our own message list
+  const myMessageList = useDocHandle<ZernoMessageList>(
+    selectedChannel.messages[myId],
+    { suspense: false }
+  )
+
   const messages = useMessages(messageLists)
 
   // TODO: Make this configurable
   useNewMessageSound(messages, myId, NEW_MESSAGE_SOUND_PATH)
   useNewMessageTitle(messages, myId)
 
-  const messageRuns = useMemo<ChannelMessageRunProps[]>(() => {
-    const runs: ChannelMessageRunProps[] = []
-    for (const message of messages) {
-      const last = runs[runs.length - 1]
-      if (last && last.author === message.author) {
-        last.messages.push(message)
-      } else {
-        runs.push({
-          author: message.author,
-          createdAt: message.createdAt,
-          messages: [message],
-          messageListUrl: selectedChannel.messages[message.author],
-          myId,
-        })
-      }
-    }
-    return runs
-  }, [messages, selectedChannel.messages, myId])
+  const entries = useMemo(
+    () => buildTimelineEntries(messages, myId),
+    [messages, myId]
+  )
 
   if (messages.length === 0) {
     return (
@@ -353,23 +454,14 @@ export function ChannelMessageList({
   return (
     <Virtuoso
       className="scrollbar-none flex-1"
-      data={messageRuns}
+      data={entries}
       components={{ List: VirtuosoList, Header: VirtuosoTopSpacer }}
       followOutput="auto"
-      initialTopMostItemIndex={messageRuns.length - 1}
-      computeItemKey={(_, run) => run.messages[0].id}
-      itemContent={(index, run) => {
-        const divider =
-          index > 0 &&
-          formatDay(run.createdAt) !==
-            formatDay(messageRuns[index - 1].createdAt)
-        return (
-          <div className="pb-6">
-            {divider && <DayDivider label={formatDay(run.createdAt)} />}
-            <ChannelMessageRun {...run} />
-          </div>
-        )
-      }}
+      initialTopMostItemIndex={entries.length - 1}
+      computeItemKey={(_, entry) => entry.message.id}
+      itemContent={(_, entry) => (
+        <ChatMessageEntry {...entry} messageList={myMessageList} />
+      )}
     />
   )
 }
