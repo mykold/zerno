@@ -13,11 +13,13 @@ import { useDocHandle, useDocuments } from "zerno-react"
 import type { DocHandle } from "@automerge/automerge-repo"
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso"
 import {
-  EllipsisIcon,
+  CopyIcon,
   MessageCircleIcon,
   PencilIcon,
   Trash2Icon,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+import { toast } from "sonner"
 
 import { useAppContext } from "@/app-context"
 import { useMessages } from "@/hooks/use-messages"
@@ -40,12 +42,6 @@ import { Message, MessageContent, MessageHeader } from "@/components/ui/message"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -53,6 +49,7 @@ import {
 } from "@/components/ui/context-menu"
 import { cn } from "@/lib/utils"
 import { useMessageEditing } from "@/hooks/use-message-editing"
+import { Badge } from "../ui/badge"
 
 // MARK: DayDivider
 
@@ -238,6 +235,99 @@ function MessageExpandableContent({ content }: MessageExpandableContentProps) {
   )
 }
 
+// MARK: MessageActions
+
+interface MessageAction {
+  label: string
+  icon: LucideIcon
+  onSelect: () => void
+  variant?: "default" | "destructive"
+  disabled?: boolean
+}
+
+interface MessageActionsArgs {
+  isOwn: boolean
+  canDelete: boolean
+  onCopy: () => void
+  onEdit: () => void
+  onDelete: () => void
+}
+
+function getMessageActions({
+  isOwn,
+  canDelete,
+  onCopy,
+  onEdit,
+  onDelete,
+}: MessageActionsArgs): MessageAction[] {
+  const actions: MessageAction[] = [
+    {
+      label: "Copy",
+      icon: CopyIcon,
+      onSelect: onCopy,
+    },
+  ]
+  if (isOwn) {
+    actions.push(
+      {
+        label: "Edit",
+        icon: PencilIcon,
+        onSelect: onEdit,
+      },
+      {
+        label: "Delete",
+        icon: Trash2Icon,
+        onSelect: onDelete,
+        variant: "destructive",
+        disabled: !canDelete,
+      }
+    )
+  }
+  return actions
+}
+
+const messageActionsClass =
+  "pointer-events-none absolute top-0 left-full z-10 mt-0.5 ml-1 flex items-center gap-0.5 opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100 has-focus-visible:pointer-events-auto has-focus-visible:opacity-100"
+
+interface MessageActionsProps {
+  actions: MessageAction[]
+}
+
+function MessageActionButtons({ actions }: MessageActionsProps) {
+  return (
+    <div
+      className={messageActionsClass}
+      onContextMenu={(e) => e.stopPropagation()}
+    >
+      {actions.map(({ label, icon: Icon, onSelect, variant, disabled }) => (
+        <Button
+          key={label}
+          variant="ghost"
+          size="icon-xs"
+          aria-label={label}
+          onClick={onSelect}
+          disabled={disabled}
+          className={cn(
+            "text-muted-foreground",
+            variant === "destructive" && "hover:text-destructive"
+          )}
+        >
+          <Icon strokeWidth={1.5} />
+        </Button>
+      ))}
+    </div>
+  )
+}
+
+function MessageActionMenuItems({ actions }: MessageActionsProps) {
+  return actions.map(({ label, icon: Icon, ...action }) => (
+    <ContextMenuItem key={label} {...action}>
+      <Icon />
+      {label}
+    </ContextMenuItem>
+  ))
+}
+
 // MARK: MessageBubble
 
 interface MessageBubbleProps {
@@ -257,75 +347,44 @@ function MessageBubble({
 }: MessageBubbleProps) {
   const { service } = useAppContext()
 
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(message.content.val)
+    toast.success("Message copied to clipboard")
+  }
+
   const handleDelete = () => {
     if (!messageList) return
     service.channels.deleteMessage({ messageList, id: message.id })
   }
 
-  const bubble = (
-    <Bubble variant="chat">
-      {!isAuthorLead && (
-        <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
-          {formatMessageTimestamp(message.createdAt).time}
-        </span>
-      )}
-      <BubbleContent className="px-2.5 py-1 wrap-anywhere">
-        <MessageExpandableContent content={message.content.val} />
-        {message.editedAt && (
-          <span className="text-xs text-muted-foreground"> (edited)</span>
-        )}
-      </BubbleContent>
-      {isOwn && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Message actions"
-              className="pointer-events-none absolute top-0 left-full z-10 mt-0.5 ml-1 opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 data-[state=open]:pointer-events-auto data-[state=open]:opacity-100"
-            >
-              <EllipsisIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onEdit}>
-              <PencilIcon />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={handleDelete}
-              disabled={!messageList}
-            >
-              <Trash2Icon />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </Bubble>
-  )
-
-  if (!isOwn) return bubble
+  const actions = getMessageActions({
+    isOwn,
+    canDelete: !!messageList,
+    onCopy: handleCopy,
+    onEdit,
+    onDelete: handleDelete,
+  })
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild className="select-text">
-        {bubble}
+        <Bubble variant="chat">
+          {!isAuthorLead && (
+            <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
+              {formatMessageTimestamp(message.createdAt).time}
+            </span>
+          )}
+          <BubbleContent className="px-2.5 py-1">
+            <MessageExpandableContent content={message.content.val} />
+            {message.editedAt && (
+              <span className="text-xs text-muted-foreground"> (edited)</span>
+            )}
+          </BubbleContent>
+          <MessageActionButtons actions={actions} />
+        </Bubble>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onSelect={onEdit}>
-          <PencilIcon />
-          Edit
-        </ContextMenuItem>
-        <ContextMenuItem
-          variant="destructive"
-          onSelect={handleDelete}
-          disabled={!messageList}
-        >
-          <Trash2Icon />
-          Delete
-        </ContextMenuItem>
+        <MessageActionMenuItems actions={actions} />
       </ContextMenuContent>
     </ContextMenu>
   )
@@ -380,6 +439,7 @@ const ChatMessageEntry = memo(function ChatMessageEntry({
               >
                 {message.author}
               </span>
+              {isOwn && <Badge variant="secondary">you</Badge>}
               <MessageTimestamp timestamp={message.createdAt} />
             </MessageHeader>
           )}
