@@ -23,11 +23,16 @@ const components: Components = {
   },
 }
 
+const MARKDOWN_PATTERN =
+  /[\n`*_~[\]<>#|\\&]|^\s*(?:[-+]|\d+\.)\s|https?:\/\/|www\./i
+
 export interface MarkdownProps {
   children: string
 }
 
 export const Markdown = memo(function Markdown({ children }: MarkdownProps) {
+  if (!MARKDOWN_PATTERN.test(children)) return children
+
   return (
     <div className="markdown">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>

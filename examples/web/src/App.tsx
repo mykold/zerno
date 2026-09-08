@@ -4,8 +4,9 @@ import Layout from "@/components/layout"
 import { useSelectedChannelUrl } from "@/hooks/use-selected-channel-url"
 import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import { ChannelHeader } from "@/components/channel/header"
-import { ChannelMessageList } from "@/components/channel/message-list"
+import { ChannelMessageList } from "@/components/chat/list"
 import { ChannelInput, ChannelInputSkeleton } from "@/components/channel/input"
+import { MessageEditingProvider } from "@/hooks/use-message-editing"
 import type { ZernoChannel } from "@/service"
 import {
   Empty,
@@ -28,10 +29,13 @@ export function App() {
       {selectedChannelUrl && selectedChannel ? (
         <div className="flex h-screen w-full flex-col bg-background">
           <ChannelHeader channel={selectedChannel} />
-          <ChannelMessageList selectedChannel={selectedChannel} />
-          <Suspense fallback={<ChannelInputSkeleton />}>
-            <ChannelInput selectedChannelUrl={selectedChannelUrl} />
-          </Suspense>
+          {/* Keyed so switching channels never leaves an editor open */}
+          <MessageEditingProvider key={selectedChannelUrl}>
+            <ChannelMessageList selectedChannel={selectedChannel} />
+            <Suspense fallback={<ChannelInputSkeleton />}>
+              <ChannelInput selectedChannelUrl={selectedChannelUrl} />
+            </Suspense>
+          </MessageEditingProvider>
         </div>
       ) : (
         <Empty className="h-full w-full">
