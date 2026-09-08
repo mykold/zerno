@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useRef, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 interface MessageEditingContextValue {
   editingId: string | null
@@ -28,16 +35,19 @@ export function MessageEditingProvider({
     composerRef.current?.focus()
   }, [])
 
+  const value = useMemo(
+    () => ({
+      editingId,
+      startEditing: setEditingId,
+      stopEditing,
+      composerRef,
+      lastOwnMessageIdRef,
+    }),
+    [editingId, stopEditing]
+  )
+
   return (
-    <MessageEditingContext.Provider
-      value={{
-        editingId,
-        startEditing: setEditingId,
-        stopEditing,
-        composerRef,
-        lastOwnMessageIdRef,
-      }}
-    >
+    <MessageEditingContext.Provider value={value}>
       {children}
     </MessageEditingContext.Provider>
   )
