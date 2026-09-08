@@ -36,11 +36,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import { Message, MessageContent, MessageHeader } from "@/components/ui/message"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -93,13 +88,8 @@ interface ChatTimelineEntry {
   bottomSpacing: "compact" | "relaxed"
 }
 
-// Long messages are revealed one chunk at a time, so a single message can
-// neither take over the viewport nor make one click parse an unbounded
-// amount of markdown.
-// ponytail: fully expanding a huge message still materialises all of it;
-// splitting one message across several virtualized rows is the upgrade path.
 // TODO: Make this configurable
-const MESSAGE_CHUNK_LENGTH = 2000
+const MESSAGE_PREVIEW_LENGTH = 2000
 
 const bottomSpacingClass = {
   compact: "pb-1",
@@ -224,54 +214,27 @@ interface MessageExpandableContentProps {
 }
 
 function MessageExpandableContent({ content }: MessageExpandableContentProps) {
-  const [visibleLength, setVisibleLength] = useState(MESSAGE_CHUNK_LENGTH)
+  const [isExpanded, setIsExpanded] = useState(false)
 
-  const isExpanded = visibleLength > MESSAGE_CHUNK_LENGTH
-  const hasMore = isExpanded && visibleLength < content.length
-
-  if (content.length <= MESSAGE_CHUNK_LENGTH) {
+  if (isExpanded || content.length <= MESSAGE_PREVIEW_LENGTH) {
     return <Markdown>{content}</Markdown>
   }
 
   return (
-    <Collapsible
-      open={isExpanded}
-      onOpenChange={(open) =>
-        setVisibleLength(open ? MESSAGE_CHUNK_LENGTH * 2 : MESSAGE_CHUNK_LENGTH)
-      }
-    >
-      {!isExpanded && (
-        <Markdown>{`${content.slice(0, MESSAGE_CHUNK_LENGTH)}…`}</Markdown>
-      )}
-      <CollapsibleContent>
-        <Markdown>
-          {hasMore ? `${content.slice(0, visibleLength)}…` : content}
-        </Markdown>
-      </CollapsibleContent>
-      <div className="flex gap-3">
-        {hasMore && (
-          <Button
-            variant="link"
-            size="sm"
-            className="h-auto p-0 text-muted-foreground"
-            onClick={() =>
-              setVisibleLength(visibleLength + MESSAGE_CHUNK_LENGTH)
-            }
-          >
-            Show more
-          </Button>
-        )}
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="link"
-            size="sm"
-            className="h-auto p-0 text-muted-foreground"
-          >
-            {isExpanded ? "Collapse" : "Show more"}
-          </Button>
-        </CollapsibleTrigger>
+    <>
+      <div className="relative max-h-64 overflow-hidden">
+        <Markdown>{content.slice(0, MESSAGE_PREVIEW_LENGTH)}</Markdown>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-bubble to-transparent" />
       </div>
-    </Collapsible>
+      <Button
+        variant="link"
+        size="sm"
+        className="h-auto p-0 text-muted-foreground"
+        onClick={() => setIsExpanded(true)}
+      >
+        Show all
+      </Button>
+    </>
   )
 }
 
