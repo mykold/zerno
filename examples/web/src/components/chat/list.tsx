@@ -12,6 +12,17 @@ import { useDocHandle, useDocuments } from "zerno-react"
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso"
 import { MessageCircleIcon } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
 import { useAppContext } from "@/app-context"
 import { useMessages } from "@/hooks/use-messages"
 import { useNewMessageSound } from "@/hooks/use-message-sound"
@@ -106,6 +117,15 @@ export function ChannelMessageList({
 
   const { editingId, startEditing, stopEditing, lastOwnMessageIdRef } =
     useMessageEditing()
+
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const handleDelete = () => {
+    if (!myMessageList || !deletingId) return
+    service.channels.deleteMessage({
+      messageList: myMessageList,
+      id: deletingId,
+    })
+  }
   const lastOwnMessageId =
     entries.findLast((entry) => entry.isOwn)?.message.id ?? null
   useEffect(() => {
@@ -176,9 +196,33 @@ export function ChannelMessageList({
             isEditing={editingId === entry.message.id}
             startEditing={startEditing}
             stopEditing={stopEditing}
+            startDeleting={setDeletingId}
           />
         )}
       />
+      <Dialog
+        open={deletingId !== null}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete message?</DialogTitle>
+            <DialogDescription>
+              It disappears for everyone in the channel.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

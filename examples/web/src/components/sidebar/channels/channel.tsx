@@ -25,6 +25,16 @@ import type { ZernoChannel } from "@/service"
 import { EditChannelSheet } from "./edit-channel-sheet"
 import { GrantChannelSheet } from "./grant-channel-sheet"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export interface ChannelProps {
   url: AutomergeUrl
@@ -45,6 +55,7 @@ export function Channel({
 
   const [isChannelGranting, setIsChannelGranting] = useState(false)
   const [isChannelEditing, setIsChannelEditing] = useState(false)
+  const [isChannelClosing, setIsChannelClosing] = useState(false)
 
   return (
     <>
@@ -86,7 +97,7 @@ export function Channel({
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={onChannelClose}
+              onClick={() => setIsChannelClosing(true)}
               className="text-destructive"
             >
               <TrashIcon className="text-destructive" />
@@ -105,6 +116,27 @@ export function Channel({
         open={isChannelEditing}
         setOpen={setIsChannelEditing}
       />
+      <Dialog open={isChannelClosing} onOpenChange={setIsChannelClosing}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Close #{channel.name}?</DialogTitle>
+            <DialogDescription>
+              The channel leaves your sidebar, but you stay a member. Open it
+              again by its URL at any time, as long as you still have access.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button variant="destructive" onClick={onChannelClose}>
+                Close channel
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

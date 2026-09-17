@@ -169,39 +169,34 @@ function MessageInlineEditor({
 
 interface MessageBubbleProps {
   message: ZernoMessage
-  messageList: DocHandle<ZernoMessageList> | undefined
+  canDelete: boolean
   isOwn: boolean
   isAuthorLead: boolean
   isRunTail: boolean
   onEdit: () => void
+  onDelete: () => void
 }
 
 function MessageBubble({
   message,
-  messageList,
+  canDelete,
   isOwn,
   isAuthorLead,
   isRunTail,
   onEdit,
+  onDelete,
 }: MessageBubbleProps) {
-  const { service } = useAppContext()
-
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content.val)
     toast.success("Message copied to clipboard")
   }
 
-  const handleDelete = () => {
-    if (!messageList) return
-    service.channels.deleteMessage({ messageList, id: message.id })
-  }
-
   const actions = getMessageActions({
     isOwn,
-    canDelete: !!messageList,
+    canDelete,
     onCopy: handleCopy,
     onEdit,
-    onDelete: handleDelete,
+    onDelete,
   })
 
   return (
@@ -230,7 +225,7 @@ function MessageBubble({
           <MessageActionButtons actions={actions} />
         </Bubble>
       </ContextMenuTrigger>
-      <ContextMenuContent>
+      <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
         <MessageActionMenuItems actions={actions} />
       </ContextMenuContent>
     </ContextMenu>
@@ -244,6 +239,7 @@ export interface ChatMessageEntryProps extends ChatTimelineEntry {
   isEditing: boolean
   startEditing: (id: string) => void
   stopEditing: () => void
+  startDeleting: (id: string) => void
 }
 
 export const ChatMessageEntry = memo(function ChatMessageEntry({
@@ -257,6 +253,7 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
   isEditing,
   startEditing,
   stopEditing,
+  startDeleting,
 }: ChatMessageEntryProps) {
   return (
     <div
@@ -300,11 +297,12 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
           ) : (
             <MessageBubble
               message={message}
-              messageList={messageList}
+              canDelete={!!messageList}
               isOwn={isOwn}
               isAuthorLead={isAuthorLead}
               isRunTail={isRunTail}
               onEdit={() => startEditing(message.id)}
+              onDelete={() => startDeleting(message.id)}
             />
           )}
         </MessageContent>
