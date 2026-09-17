@@ -50,8 +50,8 @@ export function formatMessageTimestamp(timestamp: number): {
 
 export function shrinkIdentifier(
   identifier: string,
-  head = 6,
-  tail = 4
+  head = 8,
+  tail = 6
 ): string {
   const graphemes = [
     ...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(

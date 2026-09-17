@@ -3,9 +3,11 @@ import type { DocHandle } from "@automerge/automerge-repo"
 import { toast } from "sonner"
 
 import { useAppContext } from "@/app-context"
+import { useIsTouch } from "@/hooks/use-touch"
 import { identifierColor, formatMessageTimestamp } from "@/utilities"
 import { Markdown } from "@/components/ui/markdown"
 import { MessageTimestamp } from "@/components/message-timestamp"
+import { Identifier } from "@/components/identifier"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -30,8 +32,8 @@ import {
 const MESSAGE_PREVIEW_LENGTH = 2000
 
 const bottomSpacingClass = {
-  compact: "pb-1",
-  relaxed: "pb-6",
+  compact: "pb-0.5",
+  relaxed: "pb-4",
 } as const
 
 // MARK: DayDivider
@@ -42,7 +44,7 @@ interface DayDividerProps {
 
 function DayDivider({ date }: DayDividerProps) {
   return (
-    <div className="flex items-center gap-3 py-2 text-xs text-muted-foreground">
+    <div className="flex items-center gap-3 py-1.5 text-xs text-muted-foreground">
       <span className="h-px flex-1 bg-border" />
       {date}
       <span className="h-px flex-1 bg-border" />
@@ -95,6 +97,7 @@ function MessageInlineEditor({
   onClose,
 }: MessageInlineEditorProps) {
   const { service } = useAppContext()
+  const isTouch = useIsTouch()
   const [draft, setDraft] = useState(message.content.val)
 
   const handleSave = () => {
@@ -113,7 +116,12 @@ function MessageInlineEditor({
       onClose()
       return
     }
-    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) {
+    if (
+      isTouch ||
+      e.key !== "Enter" ||
+      e.shiftKey ||
+      e.nativeEvent.isComposing
+    ) {
       return
     }
     e.preventDefault()
@@ -121,7 +129,7 @@ function MessageInlineEditor({
   }
 
   return (
-    <Bubble variant="outline">
+    <Bubble variant="outline" className="max-w-[min(80%,40rem)]">
       <BubbleContent className="py-1">
         <Textarea
           value={draft}
@@ -140,7 +148,7 @@ function MessageInlineEditor({
             className="h-auto p-0 text-muted-foreground"
             onClick={onClose}
           >
-            escape to cancel
+            <span className="pointer-coarse:hidden">escape to </span>cancel
           </Button>
           <Button
             variant="link"
@@ -149,7 +157,7 @@ function MessageInlineEditor({
             onClick={handleSave}
             disabled={!messageList || !draft.trim()}
           >
-            enter to save
+            <span className="pointer-coarse:hidden">enter to </span>save
           </Button>
         </div>
       </BubbleContent>
@@ -161,45 +169,50 @@ function MessageInlineEditor({
 
 interface MessageBubbleProps {
   message: ZernoMessage
-  messageList: DocHandle<ZernoMessageList> | undefined
+  canDelete: boolean
   isOwn: boolean
   isAuthorLead: boolean
+  isRunTail: boolean
   onEdit: () => void
+  onDelete: () => void
 }
 
 function MessageBubble({
   message,
-  messageList,
+  canDelete,
   isOwn,
   isAuthorLead,
+  isRunTail,
   onEdit,
+  onDelete,
 }: MessageBubbleProps) {
-  const { service } = useAppContext()
-
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content.val)
     toast.success("Message copied to clipboard")
   }
 
-  const handleDelete = () => {
-    if (!messageList) return
-    service.channels.deleteMessage({ messageList, id: message.id })
-  }
-
   const actions = getMessageActions({
     isOwn,
-    canDelete: !!messageList,
+    canDelete,
     onCopy: handleCopy,
     onEdit,
-    onDelete: handleDelete,
+    onDelete,
   })
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild className="select-text">
-        <Bubble variant="chat">
+      <ContextMenuTrigger
+        asChild
+        className="select-text pointer-coarse:select-none"
+      >
+        <Bubble variant="chat" className="max-w-[min(80%,40rem)]">
           {!isAuthorLead && (
-            <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
+            <span
+              className={cn(
+                "absolute top-0 right-full mt-1.5 mr-2 text-xs whitespace-nowrap text-muted-foreground opacity-0 transition-opacity duration-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:right-auto pointer-coarse:left-full pointer-coarse:mr-0 pointer-coarse:ml-2",
+                isRunTail && "pointer-coarse:opacity-100"
+              )}
+            >
               {formatMessageTimestamp(message.createdAt).time}
             </span>
           )}
@@ -212,7 +225,7 @@ function MessageBubble({
           <MessageActionButtons actions={actions} />
         </Bubble>
       </ContextMenuTrigger>
-      <ContextMenuContent>
+      <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
         <MessageActionMenuItems actions={actions} />
       </ContextMenuContent>
     </ContextMenu>
@@ -223,9 +236,11 @@ function MessageBubble({
 
 export interface ChatMessageEntryProps extends ChatTimelineEntry {
   messageList: DocHandle<ZernoMessageList> | undefined
+  isFresh: boolean
   isEditing: boolean
   startEditing: (id: string) => void
   stopEditing: () => void
+  startDeleting: (id: string) => void
 }
 
 export const ChatMessageEntry = memo(function ChatMessageEntry({
@@ -235,16 +250,20 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
   isAuthorLead,
   dateLabel,
   bottomSpacing,
+  isRunTail,
+  isFresh,
   isEditing,
   startEditing,
   stopEditing,
+  startDeleting,
 }: ChatMessageEntryProps) {
   return (
     <div
       className={cn(
-        "group/row",
+        "group/row transition-colors",
         bottomSpacingClass[bottomSpacing],
-        isEditing && "-mx-6 rounded-md bg-amber-500/10 px-6"
+        isFresh && "animate-in duration-200 fade-in slide-in-from-bottom-2",
+        isEditing && "-mx-3 rounded-md bg-amber-500/10 px-3 md:-mx-6 md:px-6"
       )}
     >
       {dateLabel && <DayDivider date={dateLabel} />}
@@ -252,6 +271,7 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
         {isAuthorLead && (
           <Avatar>
             <AvatarFallback
+              aria-hidden
               className="text-xs font-medium text-white"
               style={{ backgroundColor: identifierColor(message.author) }}
             >
@@ -259,15 +279,14 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
             </AvatarFallback>
           </Avatar>
         )}
-        <MessageContent className={cn("gap-2", !isAuthorLead && "ps-10")}>
+        <MessageContent className={cn("gap-1", !isAuthorLead && "ps-10")}>
           {isAuthorLead && (
             <MessageHeader className="gap-2">
-              <span
+              <Identifier
+                id={message.author}
                 className="font-semibold"
                 style={{ color: identifierColor(message.author, true) }}
-              >
-                {message.author}
-              </span>
+              />
               {isOwn && <Badge variant="secondary">you</Badge>}
               <MessageTimestamp timestamp={message.createdAt} />
             </MessageHeader>
@@ -281,10 +300,12 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
           ) : (
             <MessageBubble
               message={message}
-              messageList={messageList}
+              canDelete={!!messageList}
               isOwn={isOwn}
               isAuthorLead={isAuthorLead}
+              isRunTail={isRunTail}
               onEdit={() => startEditing(message.id)}
+              onDelete={() => startDeleting(message.id)}
             />
           )}
         </MessageContent>

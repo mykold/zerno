@@ -10,13 +10,39 @@ import { MessageEditingProvider } from "@/hooks/use-message-editing"
 import type { ZernoChannel } from "@/service"
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { Button } from "@/components/ui/button"
+import { useSidebar } from "@/components/ui/sidebar"
 import { MessageCircleIcon } from "lucide-react"
 import { Suspense } from "react"
+
+function NoChannelSelected() {
+  const { toggleSidebar } = useSidebar()
+
+  return (
+    <Empty className="h-dvh w-full">
+      <EmptyHeader className="max-w-md">
+        <EmptyMedia variant="icon" className="size-10">
+          <MessageCircleIcon className="size-5" />
+        </EmptyMedia>
+        <EmptyTitle className="text-lg">No channel selected</EmptyTitle>
+        <EmptyDescription className="text-sm">
+          Select a channel from the sidebar to start messaging.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent className="md:hidden">
+        <Button variant="outline" onClick={toggleSidebar}>
+          Browse channels
+        </Button>
+      </EmptyContent>
+    </Empty>
+  )
+}
 
 export function App() {
   const selectedChannelUrl = useSelectedChannelUrl()
@@ -27,7 +53,7 @@ export function App() {
   return (
     <Layout sidebar={<AppSidebar />}>
       {selectedChannelUrl && selectedChannel ? (
-        <div className="flex h-screen w-full flex-col bg-background">
+        <div className="flex h-dvh w-full flex-col bg-background">
           <ChannelHeader channel={selectedChannel} />
           {/* Keyed so switching channels never leaves an editor open */}
           <MessageEditingProvider key={selectedChannelUrl}>
@@ -38,17 +64,7 @@ export function App() {
           </MessageEditingProvider>
         </div>
       ) : (
-        <Empty className="h-full w-full">
-          <EmptyHeader className="max-w-md">
-            <EmptyMedia variant="icon" className="size-12">
-              <MessageCircleIcon className="size-6" />
-            </EmptyMedia>
-            <EmptyTitle className="text-xl">No channel selected</EmptyTitle>
-            <EmptyDescription className="text-base">
-              Select a channel from the sidebar to start messaging.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <NoChannelSelected />
       )}
     </Layout>
   )

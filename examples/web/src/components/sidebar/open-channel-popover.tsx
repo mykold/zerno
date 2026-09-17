@@ -61,7 +61,7 @@ export function OpenChannelPopover({ children }: OpenChannelPopoverProps) {
       <PopoverContent
         side="bottom"
         align="start"
-        className="w-80 p-3 shadow-md"
+        className="w-80 max-w-(--radix-popover-content-available-width) p-3 shadow-md"
       >
         <div className="space-y-3">
           <div className="space-y-1">
@@ -75,6 +75,7 @@ export function OpenChannelPopover({ children }: OpenChannelPopoverProps) {
               <LinkIcon className="absolute left-2.5 h-4 w-4 text-muted-foreground/70" />
               <Input
                 id="url"
+                aria-label="Channel URL"
                 placeholder="automerge:2WN9h4..."
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}

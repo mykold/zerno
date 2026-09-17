@@ -56,7 +56,7 @@ export function getMessageActions({
 }
 
 const messageActionsClass =
-  "pointer-events-none absolute top-0 left-full z-10 mt-0.5 ml-1 flex items-center gap-0.5 opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100 has-focus-visible:pointer-events-auto has-focus-visible:opacity-100"
+  "pointer-events-none absolute top-0 left-full z-10 mt-0.5 ml-1 flex items-center gap-0.5 opacity-0 transition-opacity duration-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 has-focus-visible:pointer-events-auto has-focus-visible:opacity-100"
 
 interface MessageActionsProps {
   actions: MessageAction[]

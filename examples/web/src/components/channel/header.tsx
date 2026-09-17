@@ -10,7 +10,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { identifierColor, shrinkIdentifier } from "@/utilities"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Identifier } from "@/components/identifier"
+import { identifierColor } from "@/utilities"
 import type { ZernoChannel } from "@/service"
 import { useMemo } from "react"
 
@@ -30,10 +32,11 @@ export function ChannelHeader({ channel }: ChannelHeaderProps) {
   )
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b px-6 font-semibold">
-      <div className="flex items-center gap-2">
-        <HashIcon className="h-5 w-5 text-muted-foreground" />
-        {channel.name}
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3 font-semibold md:px-6">
+      <SidebarTrigger className="md:hidden" />
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <HashIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
+        <span className="truncate">{channel.name}</span>
       </div>
       <Popover>
         <PopoverTrigger asChild>
@@ -48,7 +51,7 @@ export function ChannelHeader({ channel }: ChannelHeaderProps) {
         </PopoverTrigger>
         <PopoverContent
           align="end"
-          className="max-h-[min(24rem,var(--radix-popover-content-available-height))] w-72 p-1"
+          className="max-h-[min(24rem,var(--radix-popover-content-available-height))] w-72 max-w-(--radix-popover-content-available-width) p-1"
         >
           <ScrollArea className="max-h-[inherit]">
             {sortedMembers.map((member) => {
@@ -59,6 +62,7 @@ export function ChannelHeader({ channel }: ChannelHeaderProps) {
                 >
                   <Avatar className="size-6">
                     <AvatarFallback
+                      aria-hidden
                       className="text-[10px] font-medium text-white"
                       style={{ backgroundColor: identifierColor(member.id) }}
                     >
@@ -66,12 +70,12 @@ export function ChannelHeader({ channel }: ChannelHeaderProps) {
                     </AvatarFallback>
                   </Avatar>
                   <span className="min-w-0 flex-1 truncate text-sm font-normal">
-                    {shrinkIdentifier(member.id)}
+                    <Identifier id={member.id} />
                     {member.isSelf && (
                       <span className="text-muted-foreground"> (you)</span>
                     )}
                   </span>
-                  <Badge variant="default">
+                  <Badge variant="outline">
                     {member.access.toString().toLowerCase()}
                   </Badge>
                 </div>

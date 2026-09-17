@@ -5,6 +5,7 @@ import { Access, decodeContactCard, useAccess, useDocHandle } from "zerno-react"
 
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -107,7 +108,9 @@ export function GrantChannelSheet({
 
               <TabsContent value="contact-card" className="mt-3">
                 <div className="space-y-2">
-                  <Label>Paste a member's contact card</Label>
+                  <Label htmlFor="contact-card">
+                    Paste a member's contact card
+                  </Label>
 
                   <p className="text-sm text-muted-foreground">
                     The other user must share their contact card with you first.
@@ -116,6 +119,7 @@ export function GrantChannelSheet({
                   </p>
 
                   <Input
+                    id="contact-card"
                     value={contactCard}
                     onChange={(e) => setContactCard(e.target.value)}
                     placeholder="AAAAU3siQWRkIjp7InBheWxvYWQiOnsic2hhcmVfa2V5IjpbMSwzMiwwXX0sImlzc3VlciI6WzEsMzIsMzJdLCJzaWduYXR1cmUiOlsxLDY0LDY0XX19NAMDb5S53gMoTXKX..."
@@ -172,6 +176,9 @@ export function GrantChannelSheet({
 
         <SheetFooter>
           <Button onClick={handleGrantChannel}>Save changes</Button>
+          <SheetClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </SheetClose>
         </SheetFooter>
       </SheetContent>
     </Sheet>

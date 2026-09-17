@@ -24,18 +24,12 @@ const ThemeProviderContext = React.createContext<
 >(undefined)
 
 function isTheme(value: string | null): value is Theme {
-  if (value === null) {
-    return false
-  }
-
+  if (value === null) return false
   return THEME_VALUES.includes(value as Theme)
 }
 
 function getSystemTheme(): ResolvedTheme {
-  if (window.matchMedia(COLOR_SCHEME_QUERY).matches) {
-    return "dark"
-  }
-
+  if (window.matchMedia(COLOR_SCHEME_QUERY).matches) return "dark"
   return "light"
 }
 
@@ -101,26 +95,42 @@ export function ThemeProvider({
     [storageKey]
   )
 
+  const isApplied = React.useRef(false)
   const applyTheme = React.useCallback(
     (nextTheme: Theme) => {
       const root = document.documentElement
       const resolvedTheme =
         nextTheme === "system" ? getSystemTheme() : nextTheme
-      const restoreTransitions = disableTransitionOnChange
-        ? disableTransitionsTemporarily()
-        : null
-
-      root.classList.remove("light", "dark")
-      root.classList.add(resolvedTheme)
-
-      if (restoreTransitions) {
-        restoreTransitions()
+      const isFirst = !isApplied.current
+      isApplied.current = true
+      if (root.classList.contains(resolvedTheme)) {
+        return
       }
+
+      const swap = () => {
+        const restoreTransitions = disableTransitionOnChange
+          ? disableTransitionsTemporarily()
+          : null
+
+        root.classList.remove("light", "dark")
+        root.classList.add(resolvedTheme)
+
+        if (restoreTransitions) {
+          restoreTransitions()
+        }
+      }
+
+      if (isFirst || !document.startViewTransition) {
+        swap()
+        return
+      }
+
+      document.startViewTransition(swap)
     },
     [disableTransitionOnChange]
   )
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     applyTheme(theme)
 
     if (theme !== "system") {

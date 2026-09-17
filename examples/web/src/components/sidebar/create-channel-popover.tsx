@@ -53,7 +53,7 @@ export function CreateChannelPopover({ children }: CreateChannelPopoverProps) {
       <PopoverContent
         side="bottom"
         align="start"
-        className="w-72 p-3 shadow-md"
+        className="w-72 max-w-(--radix-popover-content-available-width) p-3 shadow-md"
       >
         <div className="space-y-3">
           <div className="space-y-1">
@@ -67,6 +67,7 @@ export function CreateChannelPopover({ children }: CreateChannelPopoverProps) {
               <HashIcon className="absolute left-2.5 h-4 w-4 text-muted-foreground/70" />
               <Input
                 id="name"
+                aria-label="Channel name"
                 placeholder="general"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

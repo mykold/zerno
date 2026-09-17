@@ -1,6 +1,8 @@
 import { formatDay } from "@/utilities"
 import type { ZernoMessage } from "@/service"
 
+const RUN_PAUSE_MS = 2 * 60_000
+
 /**
  * One message plus everything about it that depends on its neighbours.
  * Virtuoso renders one item per entry, so a long run by a single author
@@ -15,6 +17,8 @@ export interface ChatTimelineEntry {
   dateLabel?: string
   /** Trailing gap: inside a run by one author, or after that run ends */
   bottomSpacing: "compact" | "relaxed"
+  /** Last message of a run, or followed by a pause: the one that shows the time */
+  isRunTail: boolean
 }
 
 function dayKey(timestamp: number): number {
@@ -44,6 +48,8 @@ export function buildTimelineEntries(
       isAuthorLead: newDay || messages[index - 1].author !== message.author,
       dateLabel: newDay && index > 0 ? formatDay(message.createdAt) : undefined,
       bottomSpacing: endsRun ? "relaxed" : "compact",
+      isRunTail:
+        !next || endsRun || next.createdAt - message.createdAt > RUN_PAUSE_MS,
     }
 
     previousDay = day

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import {
+  HashIcon,
   TrashIcon,
   EditIcon,
   MoreHorizontalIcon,
@@ -24,6 +25,16 @@ import type { ZernoChannel } from "@/service"
 import { EditChannelSheet } from "./edit-channel-sheet"
 import { GrantChannelSheet } from "./grant-channel-sheet"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export interface ChannelProps {
   url: AutomergeUrl
@@ -44,20 +55,27 @@ export function Channel({
 
   const [isChannelGranting, setIsChannelGranting] = useState(false)
   const [isChannelEditing, setIsChannelEditing] = useState(false)
+  const [isChannelClosing, setIsChannelClosing] = useState(false)
 
   return (
     <>
       <SidebarMenuItem className="group/item">
         <SidebarMenuButton
           isActive={isSelected}
+          aria-current={isSelected ? "page" : undefined}
           className="group-hover/item:bg-sidebar-accent group-hover/item:text-sidebar-accent-foreground group-has-data-[state=open]/item:bg-sidebar-accent group-has-data-[state=open]/item:text-sidebar-accent-foreground"
           onClick={onChannelSelect}
         >
+          <HashIcon />
           {channel.name}
         </SidebarMenuButton>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuAction className="opacity-0 transition-opacity group-hover/item:opacity-100 hover:bg-transparent focus:outline-none focus-visible:ring-0 data-[state=open]:opacity-100">
+            <SidebarMenuAction
+              showOnHover
+              aria-label="Channel actions"
+              className="transition-opacity hover:bg-transparent md:after:block"
+            >
               <MoreHorizontalIcon />
             </SidebarMenuAction>
           </DropdownMenuTrigger>
@@ -68,9 +86,9 @@ export function Channel({
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setIsChannelGranting(true)}
-              className="text-blue-400"
+              className="text-blue-600 dark:text-blue-400"
             >
-              <ShareIcon className="text-blue-400" />
+              <ShareIcon className="text-blue-600 dark:text-blue-400" />
               Grant access
             </DropdownMenuItem>
             <Separator className="mt-2 mb-2" />
@@ -79,7 +97,7 @@ export function Channel({
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={onChannelClose}
+              onClick={() => setIsChannelClosing(true)}
               className="text-destructive"
             >
               <TrashIcon className="text-destructive" />
@@ -98,6 +116,27 @@ export function Channel({
         open={isChannelEditing}
         setOpen={setIsChannelEditing}
       />
+      <Dialog open={isChannelClosing} onOpenChange={setIsChannelClosing}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Close #{channel.name}?</DialogTitle>
+            <DialogDescription>
+              The channel leaves your sidebar, but you stay a member. Open it
+              again by its URL at any time, as long as you still have access.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button variant="destructive" onClick={onChannelClose}>
+                Close channel
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
