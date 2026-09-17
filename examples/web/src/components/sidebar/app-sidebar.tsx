@@ -6,6 +6,7 @@ import {
   Link2Icon,
   SunIcon,
   MoonIcon,
+  Trash2Icon,
 } from "lucide-react"
 import { encodeContactCard } from "zerno-core"
 import { useDocSelector } from "zerno-react"
@@ -29,6 +30,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { useAppContext } from "@/app-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -36,6 +47,8 @@ import { Channels } from "@/components/sidebar/channels"
 import { Identifier } from "@/components/identifier"
 import { identifierColor } from "@/utilities"
 import { useTheme } from "@/components/theme-provider"
+import { requestStorageDeletion } from "@/storage"
+import { useSelectedChannelUrl } from "@/hooks/use-selected-channel-url"
 import { OpenChannelPopover } from "./open-channel-popover"
 import { CreateChannelPopover } from "./create-channel-popover"
 
@@ -98,6 +111,49 @@ function CopyContactCardTooltip({ contactCard }: { contactCard: ContactCard }) {
   )
 }
 
+// MARK: DeleteDataTooltip
+
+function DeleteDataTooltip() {
+  return (
+    <Dialog>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              aria-label="Delete all data"
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          Delete all data
+        </TooltipContent>
+      </Tooltip>
+      <DialogContent showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle>Delete all data?</DialogTitle>
+          <DialogDescription>
+            Everything stored on this device is deleted for good and you lose
+            access to it.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button variant="destructive" onClick={requestStorageDeletion}>
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // MARK: AppSidebarFooter
 
 function AppSidebarFooter() {
@@ -125,6 +181,7 @@ function AppSidebarFooter() {
         <div className="ml-auto flex items-center gap-1 group-data-[collapsible=icon]:hidden">
           <ThemeTooltip />
           <CopyContactCardTooltip contactCard={contactCard} />
+          <DeleteDataTooltip />
         </div>
       </div>
     </SidebarFooter>
@@ -138,16 +195,25 @@ export function AppSidebar() {
   const channels = useDocSelector(workspace, (d) => d.channels)
 
   const { pathname } = useLocation()
-  const { setOpenMobile } = useSidebar()
+  const { isMobile, setOpenMobile } = useSidebar()
   useEffect(() => setOpenMobile(false), [pathname, setOpenMobile])
 
+  // On phones the channel list is the screen until a channel is picked
+  const selectedChannelUrl = useSelectedChannelUrl()
+  const isInline = isMobile && !selectedChannelUrl
+
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar
+      collapsible={isInline ? "none" : "icon"}
+      className="max-md:h-dvh max-md:w-full"
+    >
       <SidebarHeader className="flex h-12 shrink-0 flex-row items-center gap-2 border-b px-2 group-data-[collapsible=icon]:justify-center">
         <p className="truncate text-base font-semibold group-data-[collapsible=icon]:hidden">
           zerno-web
         </p>
-        <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:ml-0" />
+        {!isInline && (
+          <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:ml-0" />
+        )}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

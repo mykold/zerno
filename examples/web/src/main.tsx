@@ -10,6 +10,7 @@ import { Zerno } from "zerno-core"
 
 import "./index.css"
 import { SYNC_SERVER } from "./sync-server.ts"
+import { deletePendingStorage } from "./storage.ts"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
 import { AppContextProvider } from "@/app-context.tsx"
 import { Toaster } from "@/components/ui/sonner.tsx"
@@ -23,18 +24,21 @@ import { ZernoProvider } from "zerno-react"
 import { Loader2Icon } from "lucide-react"
 import { AppRouter } from "./app-router.tsx"
 
+const KEYHIVE_STORAGE_KEY = "keyhive"
+const REPO_STORAGE_KEY = "repo"
+
 async function createKeyhiveRepo() {
   const { syncServer, subductionWebsocketEndpoints } = SYNC_SERVER
 
   const { hive, repo } = await initializeAutomergeRepoKeyhive({
     createRepo: (config) => new Repo(config),
-    storage: new IndexedDBStorageAdapter("keyhive"),
+    storage: new IndexedDBStorageAdapter(KEYHIVE_STORAGE_KEY),
     peerIdSuffix: "zerno-web",
     automaticArchiveIngestion: true,
     cachingMode: "periodic",
     syncServer,
     repo: {
-      storage: new IndexedDBStorageAdapter("repo"),
+      storage: new IndexedDBStorageAdapter(REPO_STORAGE_KEY),
       subductionWebsocketEndpoints,
       enableRemoteHeadsGossiping: true,
     },
@@ -97,6 +101,7 @@ async function main() {
     </ThemeProvider>
   )
 
+  await deletePendingStorage(KEYHIVE_STORAGE_KEY, REPO_STORAGE_KEY)
   const { hive, repo } = await createKeyhiveRepo()
 
   const zerno = new Zerno({ repo, hive })
