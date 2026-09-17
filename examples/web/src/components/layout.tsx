@@ -1,4 +1,5 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 export interface LayoutProps {
   sidebar: React.ReactNode
@@ -7,9 +8,11 @@ export interface LayoutProps {
 
 export default function Layout({ sidebar, children }: LayoutProps) {
   return (
-    <SidebarProvider>
-      {sidebar}
-      <main className="w-full min-w-0 flex-1">{children}</main>
-    </SidebarProvider>
+    <TooltipProvider delayDuration={300}>
+      <SidebarProvider>
+        {sidebar}
+        <main className="w-full min-w-0 flex-1">{children}</main>
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }

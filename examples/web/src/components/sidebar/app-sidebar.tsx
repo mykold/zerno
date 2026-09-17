@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useLocation } from "react-router"
 import {
   SquarePenIcon,
   CopyIcon,
@@ -21,41 +22,22 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarGroup,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useAppContext } from "@/app-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Channels } from "@/components/sidebar/channels"
-import { identifierColor, shrinkIdentifier } from "@/utilities"
+import { Identifier } from "@/components/identifier"
+import { identifierColor } from "@/utilities"
 import { useTheme } from "@/components/theme-provider"
 import { OpenChannelPopover } from "./open-channel-popover"
 import { CreateChannelPopover } from "./create-channel-popover"
-
-// MARK: IdentifierTooltip
-
-function IdentifierTooltip({ id }: { id: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="cursor-default truncate text-xs select-none group-data-[collapsible=icon]:hidden">
-          {shrinkIdentifier(id)}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent
-        side="top"
-        className="max-w-125 text-center font-mono text-xs break-all select-all"
-      >
-        {id}
-      </TooltipContent>
-    </Tooltip>
-  )
-}
 
 // MARK: ThemeTooltip
 
@@ -92,7 +74,7 @@ function ThemeTooltip() {
 function CopyContactCardTooltip({ contactCard }: { contactCard: ContactCard }) {
   const onCopyContactCardClick = async () => {
     await navigator.clipboard.writeText(encodeContactCard(contactCard))
-    toast.success("Copied to clipboard")
+    toast.success("Contact card copied to clipboard")
   }
 
   return (
@@ -124,23 +106,24 @@ function AppSidebarFooter() {
 
   return (
     <SidebarFooter className="bg-sidebar-accent/50">
-      <TooltipProvider delayDuration={300}>
-        <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-          <Avatar className="h-6 w-6">
-            <AvatarFallback
-              className="text-xs font-medium text-white"
-              style={{ backgroundColor: identifierColor(id) }}
-            >
-              {id.substring(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <IdentifierTooltip id={id} />
-          <div className="ml-auto flex items-center gap-1 group-data-[collapsible=icon]:hidden">
-            <ThemeTooltip />
-            <CopyContactCardTooltip contactCard={contactCard} />
-          </div>
+      <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+        <Avatar className="h-6 w-6">
+          <AvatarFallback
+            className="text-xs font-medium text-white"
+            style={{ backgroundColor: identifierColor(id) }}
+          >
+            {id.substring(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <Identifier
+          id={id}
+          className="text-xs group-data-[collapsible=icon]:hidden"
+        />
+        <div className="ml-auto flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+          <ThemeTooltip />
+          <CopyContactCardTooltip contactCard={contactCard} />
         </div>
-      </TooltipProvider>
+      </div>
     </SidebarFooter>
   )
 }
@@ -150,6 +133,10 @@ function AppSidebarFooter() {
 export function AppSidebar() {
   const { workspace } = useAppContext()
   const channels = useDocSelector(workspace, (d) => d.channels)
+
+  const { pathname } = useLocation()
+  const { setOpenMobile } = useSidebar()
+  useEffect(() => setOpenMobile(false), [pathname, setOpenMobile])
 
   return (
     <Sidebar collapsible="icon">

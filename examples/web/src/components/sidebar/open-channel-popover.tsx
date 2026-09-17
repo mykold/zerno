@@ -61,7 +61,7 @@ export function OpenChannelPopover({ children }: OpenChannelPopoverProps) {
       <PopoverContent
         side="bottom"
         align="start"
-        className="w-80 p-3 shadow-md"
+        className="w-80 max-w-(--radix-popover-content-available-width) p-3 shadow-md"
       >
         <div className="space-y-3">
           <div className="space-y-1">

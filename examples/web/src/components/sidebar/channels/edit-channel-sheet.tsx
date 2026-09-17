@@ -5,6 +5,7 @@ import { useDocHandle, useDocSelector } from "zerno-react"
 
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -77,6 +78,9 @@ export function EditChannelSheet({
             >
               Save changes
             </Button>
+            <SheetClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </SheetClose>
           </SheetFooter>
         </form>
       </SheetContent>

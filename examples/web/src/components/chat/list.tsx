@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -33,7 +34,7 @@ const VirtuosoList = forwardRef<
   HTMLDivElement,
   { style?: CSSProperties; children?: ReactNode }
 >(({ style, children }, ref) => (
-  <div ref={ref} style={style} className="px-6">
+  <div ref={ref} style={style} className="px-3 md:px-6">
     {children}
   </div>
 ))
@@ -87,6 +88,20 @@ export function ChannelMessageList({
   }, [lastOwnMessageId, lastOwnMessageIdRef])
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
+
+  // Keeps the newest messages in view when the viewport shrinks, e.g. when
+  // the on-screen keyboard opens
+  const atBottomRef = useRef(true)
+  const resizeObserverRef = useRef<ResizeObserver>(null)
+  const scrollerRef = useCallback((el: HTMLElement | Window | null) => {
+    resizeObserverRef.current?.disconnect()
+    if (!(el instanceof HTMLElement)) return
+    resizeObserverRef.current = new ResizeObserver(() => {
+      if (!atBottomRef.current) return
+      virtuosoRef.current?.scrollToIndex({ index: "LAST", align: "end" })
+    })
+    resizeObserverRef.current.observe(el)
+  }, [])
   useEffect(() => {
     if (!editingId) return
     const index = entries.findIndex((entry) => entry.message.id === editingId)
@@ -111,23 +126,31 @@ export function ChannelMessageList({
   }
 
   return (
-    <Virtuoso
-      ref={virtuosoRef}
-      className="scrollbar-none flex-1"
-      data={entries}
-      components={{ List: VirtuosoList, Header: VirtuosoTopSpacer }}
-      followOutput="auto"
-      initialTopMostItemIndex={entries.length - 1}
-      computeItemKey={(_, entry) => entry.message.id}
-      itemContent={(_, entry) => (
-        <ChatMessageEntry
-          {...entry}
-          messageList={myMessageList}
-          isEditing={editingId === entry.message.id}
-          startEditing={startEditing}
-          stopEditing={stopEditing}
-        />
-      )}
-    />
+    <>
+      <Virtuoso
+        ref={virtuosoRef}
+        scrollerRef={scrollerRef}
+        atBottomStateChange={(atBottom) => {
+          atBottomRef.current = atBottom
+        }}
+        className="flex-1 overflow-x-hidden overscroll-y-contain focus-visible:outline-2 focus-visible:-outline-offset-2"
+        tabIndex={0}
+        aria-label="Messages"
+        data={entries}
+        components={{ List: VirtuosoList, Header: VirtuosoTopSpacer }}
+        followOutput="auto"
+        initialTopMostItemIndex={entries.length - 1}
+        computeItemKey={(_, entry) => entry.message.id}
+        itemContent={(_, entry) => (
+          <ChatMessageEntry
+            {...entry}
+            messageList={myMessageList}
+            isEditing={editingId === entry.message.id}
+            startEditing={startEditing}
+            stopEditing={stopEditing}
+          />
+        )}
+      />
+    </>
   )
 }

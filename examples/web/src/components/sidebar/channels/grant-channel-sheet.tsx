@@ -5,6 +5,7 @@ import { Access, decodeContactCard, useAccess, useDocHandle } from "zerno-react"
 
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -172,6 +173,9 @@ export function GrantChannelSheet({
 
         <SheetFooter>
           <Button onClick={handleGrantChannel}>Save changes</Button>
+          <SheetClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </SheetClose>
         </SheetFooter>
       </SheetContent>
     </Sheet>

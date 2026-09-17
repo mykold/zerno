@@ -1,12 +1,15 @@
 import React, { useId, useState } from "react"
+import { SendHorizontalIcon } from "lucide-react"
 import type { AutomergeUrl } from "@automerge/automerge-repo/slim"
 import { toast } from "sonner"
-import { Access, useAccess, useDocHandle } from "zerno-react"
+import { Access, useAccess, useDocHandle, useDocSelector } from "zerno-react"
 
+import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAppContext } from "@/app-context"
 import { useMessageEditing } from "@/hooks/use-message-editing"
+import { useIsTouch } from "@/hooks/use-touch"
 import type { ZernoChannel } from "@/service"
 
 // MARK: ChannelInputSkeleton
@@ -32,11 +35,13 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   const [content, setContent] = useState("")
   const myAccess = useAccess(selectedChannelUrl)
   const { startEditing, composerRef, lastOwnMessageIdRef } = useMessageEditing()
+  const isTouch = useIsTouch()
 
   const formId = useId()
   const channel = useDocHandle<ZernoChannel>(selectedChannelUrl, {
     suspense: true,
   })
+  const name = useDocSelector(channel, (d) => d.name)
 
   if (!myAccess?.atLeast(Access.edit())) return null
 
@@ -62,7 +67,12 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
       return
     }
 
-    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) {
+    if (
+      isTouch ||
+      e.key !== "Enter" ||
+      e.shiftKey ||
+      e.nativeEvent.isComposing
+    ) {
       return
     }
 
@@ -76,17 +86,31 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
 
   return (
     <footer className="shrink-0 bg-background p-2">
-      <form id={formId} onSubmit={handleSendMessage} className="flex gap-2">
+      <form
+        id={formId}
+        onSubmit={handleSendMessage}
+        className="relative flex gap-2"
+      >
         <Textarea
           ref={composerRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
-          placeholder="Type a message..."
+          placeholder={`Message #${name}`}
           className="scrollbar-none max-h-40 min-h-12 resize-none overflow-y-auto rounded-2xl bg-muted/50 py-3 pr-12 pl-4 text-base focus-visible:ring-1 focus-visible:ring-offset-0"
           autoComplete="off"
         />
+        <Button
+          type="submit"
+          variant="ghost"
+          size="icon"
+          aria-label="Send"
+          disabled={!content.trim()}
+          className="absolute right-2 bottom-2 text-muted-foreground hover:text-foreground"
+        >
+          <SendHorizontalIcon />
+        </Button>
       </form>
     </footer>
   )

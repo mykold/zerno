@@ -3,9 +3,11 @@ import type { DocHandle } from "@automerge/automerge-repo"
 import { toast } from "sonner"
 
 import { useAppContext } from "@/app-context"
+import { useIsTouch } from "@/hooks/use-touch"
 import { identifierColor, formatMessageTimestamp } from "@/utilities"
 import { Markdown } from "@/components/ui/markdown"
 import { MessageTimestamp } from "@/components/message-timestamp"
+import { Identifier } from "@/components/identifier"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -95,6 +97,7 @@ function MessageInlineEditor({
   onClose,
 }: MessageInlineEditorProps) {
   const { service } = useAppContext()
+  const isTouch = useIsTouch()
   const [draft, setDraft] = useState(message.content.val)
 
   const handleSave = () => {
@@ -113,7 +116,12 @@ function MessageInlineEditor({
       onClose()
       return
     }
-    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) {
+    if (
+      isTouch ||
+      e.key !== "Enter" ||
+      e.shiftKey ||
+      e.nativeEvent.isComposing
+    ) {
       return
     }
     e.preventDefault()
@@ -140,7 +148,7 @@ function MessageInlineEditor({
             className="h-auto p-0 text-muted-foreground"
             onClick={onClose}
           >
-            escape to cancel
+            <span className="pointer-coarse:hidden">escape to </span>cancel
           </Button>
           <Button
             variant="link"
@@ -149,7 +157,7 @@ function MessageInlineEditor({
             onClick={handleSave}
             disabled={!messageList || !draft.trim()}
           >
-            enter to save
+            <span className="pointer-coarse:hidden">enter to </span>save
           </Button>
         </div>
       </BubbleContent>
@@ -164,6 +172,7 @@ interface MessageBubbleProps {
   messageList: DocHandle<ZernoMessageList> | undefined
   isOwn: boolean
   isAuthorLead: boolean
+  isRunTail: boolean
   onEdit: () => void
 }
 
@@ -172,6 +181,7 @@ function MessageBubble({
   messageList,
   isOwn,
   isAuthorLead,
+  isRunTail,
   onEdit,
 }: MessageBubbleProps) {
   const { service } = useAppContext()
@@ -196,10 +206,18 @@ function MessageBubble({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild className="select-text">
+      <ContextMenuTrigger
+        asChild
+        className="select-text pointer-coarse:select-none"
+      >
         <Bubble variant="chat">
           {!isAuthorLead && (
-            <span className="absolute top-0 right-full mt-1.5 mr-2 text-xs text-muted-foreground opacity-0 group-hover/row:opacity-100">
+            <span
+              className={cn(
+                "absolute top-0 right-full mt-1.5 mr-2 text-xs whitespace-nowrap text-muted-foreground opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:right-auto pointer-coarse:left-full pointer-coarse:mr-0 pointer-coarse:ml-2",
+                isRunTail && "pointer-coarse:opacity-100"
+              )}
+            >
               {formatMessageTimestamp(message.createdAt).time}
             </span>
           )}
@@ -235,6 +253,7 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
   isAuthorLead,
   dateLabel,
   bottomSpacing,
+  isRunTail,
   isEditing,
   startEditing,
   stopEditing,
@@ -244,7 +263,7 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
       className={cn(
         "group/row",
         bottomSpacingClass[bottomSpacing],
-        isEditing && "-mx-6 rounded-md bg-amber-500/10 px-6"
+        isEditing && "-mx-3 rounded-md bg-amber-500/10 px-3 md:-mx-6 md:px-6"
       )}
     >
       {dateLabel && <DayDivider date={dateLabel} />}
@@ -262,12 +281,11 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
         <MessageContent className={cn("gap-2", !isAuthorLead && "ps-10")}>
           {isAuthorLead && (
             <MessageHeader className="gap-2">
-              <span
+              <Identifier
+                id={message.author}
                 className="font-semibold"
                 style={{ color: identifierColor(message.author, true) }}
-              >
-                {message.author}
-              </span>
+              />
               {isOwn && <Badge variant="secondary">you</Badge>}
               <MessageTimestamp timestamp={message.createdAt} />
             </MessageHeader>
@@ -284,6 +302,7 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
               messageList={messageList}
               isOwn={isOwn}
               isAuthorLead={isAuthorLead}
+              isRunTail={isRunTail}
               onEdit={() => startEditing(message.id)}
             />
           )}
