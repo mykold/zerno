@@ -209,7 +209,7 @@ function MessageBubble({
           {!isAuthorLead && (
             <span
               className={cn(
-                "absolute top-0 right-full mt-1.5 mr-2 text-xs whitespace-nowrap text-muted-foreground opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:right-auto pointer-coarse:left-full pointer-coarse:mr-0 pointer-coarse:ml-2",
+                "absolute top-0 right-full mt-1.5 mr-2 text-xs whitespace-nowrap text-muted-foreground opacity-0 transition-opacity duration-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:right-auto pointer-coarse:left-full pointer-coarse:mr-0 pointer-coarse:ml-2",
                 isRunTail && "pointer-coarse:opacity-100"
               )}
             >
@@ -236,6 +236,7 @@ function MessageBubble({
 
 export interface ChatMessageEntryProps extends ChatTimelineEntry {
   messageList: DocHandle<ZernoMessageList> | undefined
+  isFresh: boolean
   isEditing: boolean
   startEditing: (id: string) => void
   stopEditing: () => void
@@ -250,6 +251,7 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
   dateLabel,
   bottomSpacing,
   isRunTail,
+  isFresh,
   isEditing,
   startEditing,
   stopEditing,
@@ -258,8 +260,9 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
   return (
     <div
       className={cn(
-        "group/row",
+        "group/row transition-colors",
         bottomSpacingClass[bottomSpacing],
+        isFresh && "animate-in duration-200 fade-in slide-in-from-bottom-2",
         isEditing && "-mx-3 rounded-md bg-amber-500/10 px-3 md:-mx-6 md:px-6"
       )}
     >

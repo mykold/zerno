@@ -181,18 +181,24 @@ export function ChannelMessageList({
         atBottomStateChange={(atBottom) => {
           atBottomRef.current = atBottom
         }}
-        className="flex-1 overflow-x-hidden overscroll-y-contain focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+        className="flex-1 animate-in overflow-x-hidden overscroll-y-contain duration-200 fade-in focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
         tabIndex={0}
         aria-label="Messages"
         data={entries}
         components={{ List: VirtuosoList, Header: VirtuosoTopSpacer }}
-        followOutput="auto"
+        followOutput={(atBottom) =>
+          atBottom &&
+          (matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "auto"
+            : "smooth")
+        }
         initialTopMostItemIndex={entries.length - 1}
         computeItemKey={(_, entry) => entry.message.id}
         itemContent={(_, entry) => (
           <ChatMessageEntry
             {...entry}
             messageList={myMessageList}
+            isFresh={Date.now() - entry.message.createdAt < 1000}
             isEditing={editingId === entry.message.id}
             startEditing={startEditing}
             stopEditing={stopEditing}
