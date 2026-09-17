@@ -19,7 +19,7 @@ import {
   ContextMenuContent,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 import type { ZernoMessage, ZernoMessageList } from "@/service"
 import type { ChatTimelineEntry } from "./timeline"
 import {

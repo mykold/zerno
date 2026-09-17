@@ -36,7 +36,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 import type { ZernoChannel, ZernoMessageList } from "@/service"
 import { buildTimelineEntries } from "./timeline"
 import { ChatMessageEntry } from "./message"

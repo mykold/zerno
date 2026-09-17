@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ContextMenuItem } from "@/components/ui/context-menu"
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 
 export interface MessageAction {
   label: string
