@@ -119,7 +119,13 @@ export function Channel({
       <Dialog open={isChannelClosing} onOpenChange={setIsChannelClosing}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Close #{channel.name}?</DialogTitle>
+            <DialogTitle>
+              Close{" "}
+              <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-base font-normal">
+                #{channel.name}
+              </span>
+              ?
+            </DialogTitle>
             <DialogDescription>
               The channel leaves your sidebar, but you stay a member. Open it
               again by its URL at any time, as long as you still have access.

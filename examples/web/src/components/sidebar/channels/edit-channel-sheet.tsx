@@ -45,7 +45,7 @@ export function EditChannelSheet({
       })
     } catch (e) {
       const message = (e as Error).message
-      toast.error(message)
+      toast.error("Could not rename channel", { description: message })
       return
     }
     toast.success("Channel successfully updated")

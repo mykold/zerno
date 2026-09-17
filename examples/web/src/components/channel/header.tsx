@@ -52,6 +52,11 @@ export function ChannelHeader({ channel }: ChannelHeaderProps) {
         <PopoverContent
           align="end"
           className="max-h-[min(24rem,var(--radix-popover-content-available-height))] w-72 max-w-(--radix-popover-content-available-width) p-1"
+          // Focusing the first member would open its identifier tooltip
+          onOpenAutoFocus={(e) => {
+            e.preventDefault()
+            ;(e.currentTarget as HTMLElement).focus()
+          }}
         >
           <ScrollArea className="max-h-[inherit]">
             {sortedMembers.map((member) => {

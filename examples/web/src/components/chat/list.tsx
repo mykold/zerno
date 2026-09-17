@@ -58,7 +58,7 @@ function VirtuosoTopSpacer() {
 
 const skeletonWidths = ["w-64", "w-96", "w-48", "w-80", "w-72", "w-56"]
 
-function ChannelMessageListSkeleton() {
+export function ChannelMessageListSkeleton() {
   return (
     <div className="flex flex-1 flex-col justify-end gap-4 overflow-hidden px-3 pb-4 md:px-6">
       {Array.from({ length: 12 }, (_, i) => (
@@ -192,7 +192,8 @@ export function ChannelMessageList({
             ? "auto"
             : "smooth")
         }
-        initialTopMostItemIndex={entries.length - 1}
+        initialTopMostItemIndex={{ index: "LAST", align: "end" }}
+        alignToBottom
         computeItemKey={(_, entry) => entry.message.id}
         itemContent={(_, entry) => (
           <ChatMessageEntry

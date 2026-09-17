@@ -71,7 +71,7 @@ export function GrantChannelSheet({
           })
         } catch (e) {
           const message = (e as Error).message
-          toast.error(message)
+          toast.error("Could not grant access", { description: message })
           break
         }
 

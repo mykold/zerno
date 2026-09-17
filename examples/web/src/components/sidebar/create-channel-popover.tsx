@@ -43,7 +43,9 @@ export function CreateChannelPopover({ children }: CreateChannelPopoverProps) {
       setName("")
       navigate(`/channels/${handle.url}`)
     } catch (e) {
-      toast.error((e as Error).message)
+      toast.error("Could not create channel", {
+        description: (e as Error).message,
+      })
     }
   }
 

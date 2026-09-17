@@ -2,7 +2,7 @@ import React, { useId, useState } from "react"
 import { SendHorizontalIcon } from "lucide-react"
 import type { AutomergeUrl } from "@automerge/automerge-repo/slim"
 import { toast } from "sonner"
-import { Access, useAccess, useDocHandle, useDocSelector } from "zerno-react"
+import { Access, useAccess, useDocHandle } from "zerno-react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -41,7 +41,6 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   const channel = useDocHandle<ZernoChannel>(selectedChannelUrl, {
     suspense: true,
   })
-  const name = useDocSelector(channel, (d) => d.name)
 
   if (!myAccess?.atLeast(Access.edit())) return null
 
@@ -53,7 +52,7 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
       await service.channels.sendMessage({ channel, content: content.trim() })
     } catch (e) {
       const message = (e as Error).message
-      toast.error(message)
+      toast.error("Could not send message", { description: message })
       return
     }
 
@@ -97,7 +96,7 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
-          placeholder={`Message #${name}`}
+          placeholder="Message"
           className="scrollbar-none max-h-40 min-h-10 resize-none overflow-y-auto rounded-xl bg-muted/50 py-2 pr-12 pl-3 text-base focus-visible:ring-1 focus-visible:ring-offset-0"
           autoComplete="off"
         />
@@ -107,6 +106,8 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
           size="icon"
           aria-label="Send"
           disabled={!content.trim()}
+          // Keeps focus (and the on-screen keyboard) in the textarea
+          onPointerDown={(e) => e.preventDefault()}
           className="absolute right-1 bottom-1 text-muted-foreground hover:text-foreground"
         >
           <SendHorizontalIcon />

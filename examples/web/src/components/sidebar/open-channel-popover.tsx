@@ -49,7 +49,7 @@ export function OpenChannelPopover({ children }: OpenChannelPopoverProps) {
       toast.success("Channel opened successfully")
     } catch (e) {
       const message = (e as Error).message
-      toast.error(message)
+      toast.error("Could not open channel", { description: message })
     } finally {
       setIsOpening(false)
     }
