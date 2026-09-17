@@ -32,7 +32,7 @@ export function ChannelHeader({ channel }: ChannelHeaderProps) {
   )
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 font-semibold md:px-6">
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3 font-semibold md:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <HashIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -75,7 +75,7 @@ export function ChannelHeader({ channel }: ChannelHeaderProps) {
                       <span className="text-muted-foreground"> (you)</span>
                     )}
                   </span>
-                  <Badge variant="default">
+                  <Badge variant="outline">
                     {member.access.toString().toLowerCase()}
                   </Badge>
                 </div>

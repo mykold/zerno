@@ -27,11 +27,11 @@ function NoChannelSelected() {
   return (
     <Empty className="h-dvh w-full">
       <EmptyHeader className="max-w-md">
-        <EmptyMedia variant="icon" className="size-12">
-          <MessageCircleIcon className="size-6" />
+        <EmptyMedia variant="icon" className="size-10">
+          <MessageCircleIcon className="size-5" />
         </EmptyMedia>
-        <EmptyTitle className="text-xl">No channel selected</EmptyTitle>
-        <EmptyDescription className="text-base">
+        <EmptyTitle className="text-lg">No channel selected</EmptyTitle>
+        <EmptyDescription className="text-sm">
           Select a channel from the sidebar to start messaging.
         </EmptyDescription>
       </EmptyHeader>

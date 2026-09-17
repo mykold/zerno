@@ -1,5 +1,6 @@
 import { useState } from "react"
 import {
+  HashIcon,
   TrashIcon,
   EditIcon,
   MoreHorizontalIcon,
@@ -54,6 +55,7 @@ export function Channel({
           className="group-hover/item:bg-sidebar-accent group-hover/item:text-sidebar-accent-foreground group-has-data-[state=open]/item:bg-sidebar-accent group-has-data-[state=open]/item:text-sidebar-accent-foreground"
           onClick={onChannelSelect}
         >
+          <HashIcon />
           {channel.name}
         </SidebarMenuButton>
         <DropdownMenu>

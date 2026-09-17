@@ -143,7 +143,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="flex h-14 shrink-0 flex-row items-center gap-2 border-b px-2 group-data-[collapsible=icon]:justify-center">
+      <SidebarHeader className="flex h-12 shrink-0 flex-row items-center gap-2 border-b px-2 group-data-[collapsible=icon]:justify-center">
         <p className="truncate text-base font-semibold group-data-[collapsible=icon]:hidden">
           zerno-web
         </p>

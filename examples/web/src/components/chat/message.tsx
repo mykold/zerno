@@ -32,8 +32,8 @@ import {
 const MESSAGE_PREVIEW_LENGTH = 2000
 
 const bottomSpacingClass = {
-  compact: "pb-1",
-  relaxed: "pb-6",
+  compact: "pb-0.5",
+  relaxed: "pb-4",
 } as const
 
 // MARK: DayDivider
@@ -44,7 +44,7 @@ interface DayDividerProps {
 
 function DayDivider({ date }: DayDividerProps) {
   return (
-    <div className="flex items-center gap-3 py-2 text-xs text-muted-foreground">
+    <div className="flex items-center gap-3 py-1.5 text-xs text-muted-foreground">
       <span className="h-px flex-1 bg-border" />
       {date}
       <span className="h-px flex-1 bg-border" />
@@ -129,7 +129,7 @@ function MessageInlineEditor({
   }
 
   return (
-    <Bubble variant="outline">
+    <Bubble variant="outline" className="max-w-[min(80%,40rem)]">
       <BubbleContent className="py-1">
         <Textarea
           value={draft}
@@ -210,7 +210,7 @@ function MessageBubble({
         asChild
         className="select-text pointer-coarse:select-none"
       >
-        <Bubble variant="chat">
+        <Bubble variant="chat" className="max-w-[min(80%,40rem)]">
           {!isAuthorLead && (
             <span
               className={cn(
@@ -279,7 +279,7 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
             </AvatarFallback>
           </Avatar>
         )}
-        <MessageContent className={cn("gap-2", !isAuthorLead && "ps-10")}>
+        <MessageContent className={cn("gap-1", !isAuthorLead && "ps-10")}>
           {isAuthorLead && (
             <MessageHeader className="gap-2">
               <Identifier

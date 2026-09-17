@@ -16,9 +16,9 @@ import type { ZernoChannel } from "@/service"
 
 export function ChannelInputSkeleton() {
   return (
-    <footer className="shrink-0 bg-background p-2">
+    <footer className="shrink-0 bg-background px-3 pt-1 pb-2 md:px-6">
       <div className="flex gap-2">
-        <Skeleton className="min-h-12 w-full rounded-2xl" />
+        <Skeleton className="min-h-10 w-full rounded-xl" />
       </div>
     </footer>
   )
@@ -85,7 +85,7 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   }
 
   return (
-    <footer className="shrink-0 bg-background p-2">
+    <footer className="shrink-0 bg-background px-3 pt-1 pb-2 md:px-6">
       <form
         id={formId}
         onSubmit={handleSendMessage}
@@ -98,7 +98,7 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
           onKeyDown={handleKeyDown}
           rows={1}
           placeholder={`Message #${name}`}
-          className="scrollbar-none max-h-40 min-h-12 resize-none overflow-y-auto rounded-2xl bg-muted/50 py-3 pr-12 pl-4 text-base focus-visible:ring-1 focus-visible:ring-offset-0"
+          className="scrollbar-none max-h-40 min-h-10 resize-none overflow-y-auto rounded-xl bg-muted/50 py-2 pr-12 pl-3 text-base focus-visible:ring-1 focus-visible:ring-offset-0"
           autoComplete="off"
         />
         <Button
@@ -107,7 +107,7 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
           size="icon"
           aria-label="Send"
           disabled={!content.trim()}
-          className="absolute right-2 bottom-2 text-muted-foreground hover:text-foreground"
+          className="absolute right-1 bottom-1 text-muted-foreground hover:text-foreground"
         >
           <SendHorizontalIcon />
         </Button>

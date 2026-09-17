@@ -24,6 +24,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import type { ZernoChannel, ZernoMessageList } from "@/service"
 import { buildTimelineEntries } from "./timeline"
 import { ChatMessageEntry } from "./message"
@@ -40,7 +42,30 @@ const VirtuosoList = forwardRef<
 ))
 
 function VirtuosoTopSpacer() {
-  return <div className="h-6" />
+  return <div className="h-4" />
+}
+
+const skeletonWidths = ["w-64", "w-96", "w-48", "w-80", "w-72", "w-56"]
+
+function ChannelMessageListSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col justify-end gap-4 overflow-hidden px-3 pb-4 md:px-6">
+      {Array.from({ length: 12 }, (_, i) => (
+        <div key={i} className="flex gap-2">
+          <Skeleton className="size-8 rounded-full" />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-3 w-40" />
+            <Skeleton
+              className={cn(
+                "h-8 max-w-full rounded-xl",
+                skeletonWidths[i % skeletonWidths.length]
+              )}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export interface ChannelMessageListProps {
@@ -110,14 +135,17 @@ export function ChannelMessageList({
   }, [editingId, entries])
 
   if (messages.length === 0) {
+    if (messageLists.size < messageListUrls.length) {
+      return <ChannelMessageListSkeleton />
+    }
     return (
       <Empty className="flex-1">
         <EmptyHeader className="max-w-md">
-          <EmptyMedia variant="icon" className="size-12">
-            <MessageCircleIcon className="size-6" />
+          <EmptyMedia variant="icon" className="size-10">
+            <MessageCircleIcon className="size-5" />
           </EmptyMedia>
-          <EmptyTitle className="text-xl">No messages yet</EmptyTitle>
-          <EmptyDescription className="text-base">
+          <EmptyTitle className="text-lg">No messages yet</EmptyTitle>
+          <EmptyDescription className="text-sm">
             Start the conversation by sending your first message.
           </EmptyDescription>
         </EmptyHeader>
