@@ -133,7 +133,7 @@ export function ChannelMessageList({
         atBottomStateChange={(atBottom) => {
           atBottomRef.current = atBottom
         }}
-        className="flex-1 overflow-x-hidden overscroll-y-contain focus-visible:outline-2 focus-visible:-outline-offset-2"
+        className="flex-1 overflow-x-hidden overscroll-y-contain focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
         tabIndex={0}
         aria-label="Messages"
         data={entries}

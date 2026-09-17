@@ -271,6 +271,7 @@ export const ChatMessageEntry = memo(function ChatMessageEntry({
         {isAuthorLead && (
           <Avatar>
             <AvatarFallback
+              aria-hidden
               className="text-xs font-medium text-white"
               style={{ backgroundColor: identifierColor(message.author) }}
             >

@@ -62,6 +62,7 @@ export function ChannelHeader({ channel }: ChannelHeaderProps) {
                 >
                   <Avatar className="size-6">
                     <AvatarFallback
+                      aria-hidden
                       className="text-[10px] font-medium text-white"
                       style={{ backgroundColor: identifierColor(member.id) }}
                     >

@@ -67,6 +67,7 @@ export function CreateChannelPopover({ children }: CreateChannelPopoverProps) {
               <HashIcon className="absolute left-2.5 h-4 w-4 text-muted-foreground/70" />
               <Input
                 id="name"
+                aria-label="Channel name"
                 placeholder="general"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

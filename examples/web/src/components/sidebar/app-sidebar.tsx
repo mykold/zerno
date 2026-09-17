@@ -53,6 +53,7 @@ function ThemeTooltip() {
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Toggle theme"
           onClick={toggleTheme}
           className="h-7 w-7 text-muted-foreground hover:text-foreground"
         >
@@ -84,6 +85,7 @@ function CopyContactCardTooltip({ contactCard }: { contactCard: ContactCard }) {
           variant="ghost"
           size="icon"
           className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          aria-label="Copy contact card"
           onClick={onCopyContactCardClick}
         >
           <CopyIcon className="size-4" />
@@ -109,6 +111,7 @@ function AppSidebarFooter() {
       <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
         <Avatar className="h-6 w-6">
           <AvatarFallback
+            aria-hidden
             className="text-xs font-medium text-white"
             style={{ backgroundColor: identifierColor(id) }}
           >
@@ -167,7 +170,9 @@ export function AppSidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        <Channels urls={channels ?? []} />
+        <nav aria-label="Channels">
+          <Channels urls={channels ?? []} />
+        </nav>
       </SidebarContent>
       <AppSidebarFooter />
     </Sidebar>

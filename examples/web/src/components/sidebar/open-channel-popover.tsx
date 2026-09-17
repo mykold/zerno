@@ -75,6 +75,7 @@ export function OpenChannelPopover({ children }: OpenChannelPopoverProps) {
               <LinkIcon className="absolute left-2.5 h-4 w-4 text-muted-foreground/70" />
               <Input
                 id="url"
+                aria-label="Channel URL"
                 placeholder="automerge:2WN9h4..."
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}

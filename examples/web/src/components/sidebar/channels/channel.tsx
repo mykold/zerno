@@ -50,6 +50,7 @@ export function Channel({
       <SidebarMenuItem className="group/item">
         <SidebarMenuButton
           isActive={isSelected}
+          aria-current={isSelected ? "page" : undefined}
           className="group-hover/item:bg-sidebar-accent group-hover/item:text-sidebar-accent-foreground group-has-data-[state=open]/item:bg-sidebar-accent group-has-data-[state=open]/item:text-sidebar-accent-foreground"
           onClick={onChannelSelect}
         >
@@ -57,7 +58,11 @@ export function Channel({
         </SidebarMenuButton>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuAction className="opacity-0 transition-opacity group-hover/item:opacity-100 hover:bg-transparent focus:outline-none focus-visible:ring-0 data-[state=open]:opacity-100">
+            <SidebarMenuAction
+              showOnHover
+              aria-label="Channel actions"
+              className="transition-opacity hover:bg-transparent md:after:block"
+            >
               <MoreHorizontalIcon />
             </SidebarMenuAction>
           </DropdownMenuTrigger>
@@ -68,9 +73,9 @@ export function Channel({
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setIsChannelGranting(true)}
-              className="text-blue-400"
+              className="text-blue-600 dark:text-blue-400"
             >
-              <ShareIcon className="text-blue-400" />
+              <ShareIcon className="text-blue-600 dark:text-blue-400" />
               Grant access
             </DropdownMenuItem>
             <Separator className="mt-2 mb-2" />
