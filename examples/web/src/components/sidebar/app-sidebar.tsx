@@ -8,10 +8,10 @@ import {
   MoonIcon,
   Trash2Icon,
 } from "lucide-react"
-import { encodeContactCard } from "zerno-core"
 import { useDocSelector } from "zerno-react"
 import { toast } from "sonner"
 import { ContactCard } from "@automerge/automerge-repo-keyhive"
+import { uint8ArrayToHex } from "@automerge/automerge-repo-keyhive/dist/utilities.js"
 
 import {
   SidebarTrigger,
@@ -87,7 +87,7 @@ function ThemeTooltip() {
 
 function CopyContactCardTooltip({ contactCard }: { contactCard: ContactCard }) {
   const onCopyContactCardClick = async () => {
-    await navigator.clipboard.writeText(encodeContactCard(contactCard))
+    await navigator.clipboard.writeText(uint8ArrayToHex(contactCard.toBytes()))
     toast.success("Contact card copied to clipboard")
   }
 
@@ -137,8 +137,8 @@ function DeleteDataTooltip() {
         <DialogHeader>
           <DialogTitle>Delete all data?</DialogTitle>
           <DialogDescription>
-            Everything stored on this device is deleted for good and you lose
-            access to it.
+            Everything stored on this device is deleted for good and cannot be
+            recovered.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

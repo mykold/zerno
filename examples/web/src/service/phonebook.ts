@@ -9,7 +9,7 @@ function key(identifier: Identifier | string): string {
   return uint8ArrayToHex(identifier.toBytes())
 }
 
-export type ZernoPhonebook = Record<string, string>
+export type ZernoPhonebook = Record<string, Uint8Array>
 
 export class PhonebookService {
   private readonly zerno: Zerno
@@ -36,12 +36,12 @@ export class PhonebookService {
     identifier: Identifier | string
   }): Promise<ContactCard> {
     const handle = await this.find(args.phonebookId)
-    const json = handle.doc()[key(args.identifier)] as string | undefined
-    if (!json)
+    const bytes = handle.doc()[key(args.identifier)] as Uint8Array | undefined
+    if (!bytes)
       throw new Error(
         `Contact card not found for identifier: ${args.identifier}`
       )
-    return ContactCard.fromJson(json)
+    return ContactCard.fromBytes(bytes)
   }
 
   async add(args: {
@@ -49,8 +49,8 @@ export class PhonebookService {
     contactCard: ContactCard
   }): Promise<void> {
     const handle = await this.find(args.phonebookId)
-    const json = args.contactCard.toJson()
-    handle.change((d) => (d[key(args.contactCard.id)] = json))
+    const bytes = args.contactCard.toBytes()
+    handle.change((d) => (d[key(args.contactCard.id)] = bytes))
   }
 
   async delete(args: {

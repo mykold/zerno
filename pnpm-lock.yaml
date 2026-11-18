@@ -108,14 +108,17 @@ settings:
 catalogs:
   default:
     '@automerge/automerge-repo-keyhive':
-      specifier: 0.5.0-alpha.6
-      version: 0.5.0-alpha.6
+      specifier: 0.8.0-alpha.1
+      version: 0.8.0-alpha.1
     '@automerge/automerge-repo-storage-indexeddb':
       specifier: 2.6.0-subduction.49
       version: 2.6.0-subduction.49
     '@automerge/automerge-repo-storage-nodefs':
       specifier: 2.6.0-subduction.49
       version: 2.6.0-subduction.49
+    '@automerge/automerge-subduction':
+      specifier: 0.20.1
+      version: 0.20.1
     '@automerge/keyhive-react':
       specifier: 0.1.0-alpha.3
       version: 0.1.0-alpha.3
@@ -123,19 +126,16 @@ catalogs:
       specifier: 2.6.0-subduction.49
       version: 2.6.0-subduction.49
     '@keyhive/keyhive':
-      specifier: 0.1.0-alpha.8
-      version: 0.1.0-alpha.8
+      specifier: 0.6.0
+      version: 0.6.0
 
 overrides:
   '@automerge/automerge': 3.5.0
   '@automerge/automerge-repo': 2.6.0-subduction.49
-  '@automerge/automerge-subduction': file:./patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz
 
 patchedDependencies:
   '@automerge/automerge-repo': c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d
-  '@automerge/automerge-repo-keyhive@0.5.0-alpha.6': ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7
   '@automerge/automerge-repo-react-hooks': 82be211dd30a320a442ff33f81ba3b3d428d0d6ea94fa62760ab585af266da72
-  '@automerge/automerge-subduction@0.17.0': 24acea34fb07870a78cd371d0a662fccbd5fb9c03f925f4e9ee6dea516f942ff
 
 importers:
 
@@ -152,13 +152,13 @@ importers:
         version: 2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)
       '@automerge/automerge-repo-keyhive':
         specifier: 'catalog:'
-        version: 0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2)
+        version: 0.8.0-alpha.1(ws@8.21.2)
       '@automerge/automerge-repo-storage-nodefs':
         specifier: 'catalog:'
         version: 2.6.0-subduction.49
       '@automerge/automerge-subduction':
-        specifier: file:../../patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz
-        version: file:patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz(patch_hash=24acea34fb07870a78cd371d0a662fccbd5fb9c03f925f4e9ee6dea516f942ff)
+        specifier: 'catalog:'
+        version: 0.20.1
       '@automerge/react':
         specifier: 'catalog:'
         version: 2.6.0-subduction.49(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -167,7 +167,7 @@ importers:
         version: 2.0.0(ink@7.1.1(@types/react@19.2.18)(react@19.2.8))
       '@keyhive/keyhive':
         specifier: 'catalog:'
-        version: 0.1.0-alpha.8
+        version: 0.6.0
       clipboardy:
         specifier: ^5.3.2
         version: 5.3.2
@@ -213,16 +213,16 @@ importers:
         version: 2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)
       '@automerge/automerge-repo-keyhive':
         specifier: 'catalog:'
-        version: 0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2)
+        version: 0.8.0-alpha.1(ws@8.21.2)
       '@automerge/automerge-repo-storage-nodefs':
         specifier: 'catalog:'
         version: 2.6.0-subduction.49
       '@automerge/automerge-subduction':
-        specifier: file:../../patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz
-        version: file:patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz(patch_hash=24acea34fb07870a78cd371d0a662fccbd5fb9c03f925f4e9ee6dea516f942ff)
+        specifier: 'catalog:'
+        version: 0.20.1
       '@keyhive/keyhive':
         specifier: 'catalog:'
-        version: 0.1.0-alpha.8
+        version: 0.6.0
       zerno-core:
         specifier: workspace:*
         version: link:../../packages/core
@@ -244,13 +244,13 @@ importers:
         version: 2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)
       '@automerge/automerge-repo-keyhive':
         specifier: 'catalog:'
-        version: 0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2)
+        version: 0.8.0-alpha.1(ws@8.21.2)
       '@automerge/automerge-repo-storage-indexeddb':
         specifier: 'catalog:'
         version: 2.6.0-subduction.49
       '@automerge/automerge-subduction':
-        specifier: file:../../patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz
-        version: file:patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz(patch_hash=24acea34fb07870a78cd371d0a662fccbd5fb9c03f925f4e9ee6dea516f942ff)
+        specifier: 'catalog:'
+        version: 0.20.1
       '@automerge/react':
         specifier: 'catalog:'
         version: 2.6.0-subduction.49(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -371,7 +371,7 @@ importers:
         version: 2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)
       '@automerge/automerge-repo-keyhive':
         specifier: 'catalog:'
-        version: 0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2)
+        version: 0.8.0-alpha.1(ws@8.21.2)
       '@types/node':
         specifier: ^26.4.0
         version: 26.4.0
@@ -386,14 +386,14 @@ importers:
         version: 3.5.0
       '@automerge/keyhive-react':
         specifier: 'catalog:'
-        version: 0.1.0-alpha.3(@automerge/automerge-repo-keyhive@0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2))(@automerge/react@2.6.0-subduction.49(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+        version: 0.1.0-alpha.3(@automerge/automerge-repo-keyhive@0.8.0-alpha.1(ws@8.21.2))(@automerge/react@2.6.0-subduction.49(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@automerge/automerge-repo':
         specifier: 2.6.0-subduction.49
         version: 2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)
       '@automerge/automerge-repo-keyhive':
         specifier: 'catalog:'
-        version: 0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2)
+        version: 0.8.0-alpha.1(ws@8.21.2)
       '@automerge/react':
         specifier: 'catalog:'
         version: 2.6.0-subduction.49(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -422,8 +422,8 @@ packages:
     resolution: {integrity: sha512-p+CMKJ93HFmLkjXKlXiVGlMQEuRb6H0MokBSwUsX+S6BRX8eV5naFZpQJFfJHjRZY0Hmnqy1/r6UWl3x+19zYA==}
     engines: {node: '>=18'}
 
-  '@automerge/automerge-repo-keyhive@0.5.0-alpha.6':
-    resolution: {integrity: sha512-74Q/YgdhMHq8AMt+ediPuod7hm9kqp2wS9femw6srw5P3ImTbOiXU7sq7Fns+113qadbmIf8U8RhHFBFduUldw==}
+  '@automerge/automerge-repo-keyhive@0.8.0-alpha.1':
+    resolution: {integrity: sha512-CdytRHw97dxfo9ikcYLTnyXknoXwRYlSXA5goDuB9+/W+VpbZPUtaggWx6NB5/CZEqcq5Qflvkdq9AIfDLBXKg==}
     engines: {node: '>=22.13'}
 
   '@automerge/automerge-repo-network-broadcastchannel@2.6.0-subduction.49':
@@ -432,10 +432,6 @@ packages:
 
   '@automerge/automerge-repo-network-messagechannel@2.6.0-subduction.49':
     resolution: {integrity: sha512-4ciBhzHzghEGF7u+koATwu5erKgdYmAWjxiVSLeUUds+d60xOvXU38f/75aZ94CmJdbBhwpz3C+vlsU+lV2CHg==}
-    engines: {node: '>=22.13'}
-
-  '@automerge/automerge-repo-network-websocket@2.6.0-subduction.48':
-    resolution: {integrity: sha512-TRKAq4iTdrSpOQYxyKZMJDJ5Civa+vONrAHBZkpK+DGShzqBB6vCdTCsrBGBF2Q63H33qQM0XYBQEQKIa/zM+Q==}
     engines: {node: '>=22.13'}
 
   '@automerge/automerge-repo-network-websocket@2.6.0-subduction.49':
@@ -461,9 +457,8 @@ packages:
     resolution: {integrity: sha512-2RRd2rrgrAMIj4hXtDCvNtqqpurjkw9I8Hdv9W+CRhMIZPl8QaAVmG1Bs4+TKBELw6WLQA6ISlrpnIChGzhpDA==}
     engines: {node: '>=22.13'}
 
-  '@automerge/automerge-subduction@file:patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz':
-    resolution: {integrity: sha512-Gkdc8ypbEehGYbS4Asp1aGXegLpr83evW3Qiu9/S9Idy+MN3FRTNj15Wc40LyYftd0vpThOqx8fmdvoQq9aL2Q==, tarball: file:patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz}
-    version: 0.17.0
+  '@automerge/automerge-subduction@0.20.1':
+    resolution: {integrity: sha512-lkRDaVr1I+C1N/IKSvn+TtT7WJnmxM0ntfUshG40Xi3INTL2//e8NcMJ8tEXh4GZYdCof37aG/diNuMLndHApQ==}
 
   '@automerge/automerge@3.5.0':
     resolution: {integrity: sha512-ejbqJWfXWM2QbTcUK/5ugYiQiyOP7LYVAp/RuSvthCc07oek0FClMxEuouuhjrLjVPDSI34RP1ftGc45PF7WRA==}
@@ -909,8 +904,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@keyhive/keyhive@0.1.0-alpha.8':
-    resolution: {integrity: sha512-juyDs15N3xyKl9mtGHoghdxiCGiXVReS4GufjUMATE3TsgASA/fznISCic+sKc9mMg+aAOXWFAbNELfBe3GyvA==}
+  '@keyhive/keyhive@0.6.0':
+    resolution: {integrity: sha512-Y9Vikg1EWAxs7doLgKVNY0qxqANmiP0O5UT25G+UAqNY4FkClEjH3VVE2iuzAaof0cZ9lP0bIvw8iL49pqoeRw==}
 
   '@modelcontextprotocol/sdk@1.30.0':
     resolution: {integrity: sha512-xKd8OIzlqNzcqcNumGAa6g+PW2kjD5vrpcKOnfldAUPP3j7lnqMPwlTXQm8gF+UwH72z0lqaRbjr9hqGz0eITA==}
@@ -4349,12 +4344,12 @@ snapshots:
       ansi-styles: 6.2.3
       is-fullwidth-code-point: 5.1.0
 
-  '@automerge/automerge-repo-keyhive@0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2)':
+  '@automerge/automerge-repo-keyhive@0.8.0-alpha.1(ws@8.21.2)':
     dependencies:
       '@automerge/automerge-repo': 2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)
-      '@automerge/automerge-repo-network-websocket': 2.6.0-subduction.48
-      '@automerge/automerge-subduction': file:patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz(patch_hash=24acea34fb07870a78cd371d0a662fccbd5fb9c03f925f4e9ee6dea516f942ff)
-      '@keyhive/keyhive': 0.1.0-alpha.8
+      '@automerge/automerge-repo-network-websocket': 2.6.0-subduction.49
+      '@automerge/automerge-subduction': 0.20.1
+      '@keyhive/keyhive': 0.6.0
       '@noble/hashes': 2.2.0
       cbor-x: 1.6.5
       eventemitter3: 5.0.4
@@ -4377,18 +4372,6 @@ snapshots:
     dependencies:
       '@automerge/automerge-repo': 2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)
       eventemitter3: 5.0.4
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
-  '@automerge/automerge-repo-network-websocket@2.6.0-subduction.48':
-    dependencies:
-      '@automerge/automerge-repo': 2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)
-      cbor-x: 1.6.5
-      debug: 4.4.3
-      eventemitter3: 5.0.4
-      ws: 8.21.2
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -4437,7 +4420,7 @@ snapshots:
   '@automerge/automerge-repo@2.6.0-subduction.49(patch_hash=c483b085b7c5e6ac2a9e3f66c13ffe5de1cef928046bf33b5714a9c37ff3eb4d)':
     dependencies:
       '@automerge/automerge': 3.5.0
-      '@automerge/automerge-subduction': file:patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz(patch_hash=24acea34fb07870a78cd371d0a662fccbd5fb9c03f925f4e9ee6dea516f942ff)
+      '@automerge/automerge-subduction': 0.20.1
       bs58check: 4.0.0
       cbor-x: 1.6.5
       debug: 4.4.3
@@ -4452,13 +4435,13 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@automerge/automerge-subduction@file:patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz(patch_hash=24acea34fb07870a78cd371d0a662fccbd5fb9c03f925f4e9ee6dea516f942ff)': {}
+  '@automerge/automerge-subduction@0.20.1': {}
 
   '@automerge/automerge@3.5.0': {}
 
-  '@automerge/keyhive-react@0.1.0-alpha.3(@automerge/automerge-repo-keyhive@0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2))(@automerge/react@2.6.0-subduction.49(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
+  '@automerge/keyhive-react@0.1.0-alpha.3(@automerge/automerge-repo-keyhive@0.8.0-alpha.1(ws@8.21.2))(@automerge/react@2.6.0-subduction.49(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@automerge/automerge-repo-keyhive': 0.5.0-alpha.6(patch_hash=ccd30ee028385e08cf4d7d1695a24f7395bf629c85f9ce0f82b3040ddbe502f7)(ws@8.21.2)
+      '@automerge/automerge-repo-keyhive': 0.8.0-alpha.1(ws@8.21.2)
       '@automerge/react': 2.6.0-subduction.49(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react: 19.2.8
 
@@ -4880,7 +4863,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@keyhive/keyhive@0.1.0-alpha.8': {}
+  '@keyhive/keyhive@0.6.0': {}
 
   '@modelcontextprotocol/sdk@1.30.0(zod@3.25.76)':
     dependencies:

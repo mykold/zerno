@@ -9,22 +9,19 @@ packages:
 
 patchedDependencies:
   '@automerge/automerge-repo': patches/@automerge__automerge-repo.patch
-  '@automerge/automerge-repo-keyhive@0.5.0-alpha.6': patches/@automerge__automerge-repo-keyhive@0.5.0-alpha.6.patch
   '@automerge/automerge-repo-react-hooks': patches/@automerge__automerge-repo-react-hooks.patch
-  '@automerge/automerge-subduction@0.17.0': patches/@automerge__automerge-subduction@0.17.0.patch
 
 catalog:
   "@automerge/automerge": 3.5.0
   "@automerge/automerge-repo": 2.6.0-subduction.49
-  "@automerge/automerge-repo-keyhive": 0.5.0-alpha.6
+  "@automerge/automerge-repo-keyhive": 0.8.0-alpha.1
   "@automerge/automerge-repo-storage-indexeddb": 2.6.0-subduction.49
   "@automerge/automerge-repo-storage-nodefs": 2.6.0-subduction.49
-  "@automerge/automerge-subduction": 0.16.1
+  "@automerge/automerge-subduction": 0.20.1
   "@automerge/keyhive-react": 0.1.0-alpha.3
   "@automerge/react": 2.6.0-subduction.49
-  "@keyhive/keyhive": 0.1.0-alpha.8
+  "@keyhive/keyhive": 0.6.0
 
 overrides:
   "@automerge/automerge": "catalog:"
   "@automerge/automerge-repo": "catalog:"
-  "@automerge/automerge-subduction": "file:./patches/vendor/automerge-subduction-wasm-0.17.0.tar.gz"

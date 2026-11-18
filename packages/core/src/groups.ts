@@ -1,6 +1,6 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 import {
-  Access,
+  Power,
   ContactCard,
   Identifier,
 } from "@automerge/automerge-repo-keyhive";
@@ -8,23 +8,23 @@ import {
   hexToUint8Array,
   uint8ArrayToHex,
 } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
-import type { AccessService } from "./access.js";
+import type { PowerService } from "./power.js";
 import type { DocumentService } from "./document.js";
-import { sanitazeIdentifier } from "./access.js";
+import { sanitazeIdentifier } from "./power.js";
 
 export interface GroupMember {
   id: Identifier;
-  access: Access;
+  power: Power;
 }
 
 interface GroupMemberRecord {
-  contactCardJson: string;
-  access: string; /* Access.toString(): "relay" | "read" | "edit" | "admin" */
+  contactCard: Uint8Array; /* ContactCard.toBytes() */
+  power: string; /* Power.toString(): "relay" | "read" | "edit" | "admin" */
 }
 
 interface GroupDocumentRecord {
   id: AutomergeUrl;
-  access: string; /* Access.toString() */
+  power: string; /* Power.toString() */
 }
 
 export interface Group {
@@ -41,15 +41,15 @@ export interface Group {
  *
  * A group here is just a synced document listing members (with their
  * ContactCard, for granting them documents added later) and documents
- * (with the access level granted for each). `grant`/`addDocument` below
+ * (with the power granted for each). `grant`/`addDocument` below
  * replicate "one grant covers future members and documents" by directly
  * granting each member each document, capped at the lower of the two
- * access levels (same rule keyhive itself uses).
+ * powers (same rule keyhive itself uses).
  */
 export class GroupService {
   constructor(
     private readonly documents: DocumentService,
-    private readonly access: AccessService,
+    private readonly power: PowerService,
   ) {}
 
   async create(): Promise<DocHandle<Group>> {
@@ -64,34 +64,34 @@ export class GroupService {
     return await this.documents.find<Group>(url);
   }
 
-  /** Adds a member, granting them access to every document already in the group. */
+  /** Adds a member, granting them power over every document already in the group. */
   async grant(args: {
     group: DocHandle<Group>;
     contactCard: ContactCard;
-    access: Access;
+    power: Power;
   }): Promise<void> {
     // Also grant the group document itself, so the member can read the
     // roster and call addDocument for their own documents later.
-    await this.access.grant({
+    await this.power.grant({
       id: args.group.url,
       member: args.contactCard,
-      access: args.access,
+      power: args.power,
     });
 
     for (const doc of args.group.doc().documents) {
-      const docAccess = Access.fromString(doc.access);
-      await this.access.grant({
+      const docPower = Power.fromString(doc.power);
+      await this.power.grant({
         id: doc.id,
         member: args.contactCard,
-        access: args.access.atLeast(docAccess) ? docAccess : args.access,
+        power: args.power.atLeast(docPower) ? docPower : args.power,
       });
     }
 
     const idHex = uint8ArrayToHex(args.contactCard.id.toBytes());
     args.group.change((d) => {
       d.members[idHex] = {
-        contactCardJson: args.contactCard.toJson(),
-        access: args.access.toString(),
+        contactCard: args.contactCard.toBytes(),
+        power: args.power.toString(),
       };
     });
   }
@@ -107,23 +107,23 @@ export class GroupService {
     });
   }
 
-  /** Registers a document with the group, granting every current member access to it. */
+  /** Registers a document with the group, granting every current member power over it. */
   async addDocument(args: {
     group: DocHandle<Group>;
     id: AutomergeUrl;
-    access: Access;
+    power: Power;
   }): Promise<void> {
     for (const member of Object.values(args.group.doc().members)) {
-      const memberAccess = Access.fromString(member.access);
-      await this.access.grant({
+      const memberPower = Power.fromString(member.power);
+      await this.power.grant({
         id: args.id,
-        member: ContactCard.fromJson(member.contactCardJson),
-        access: memberAccess.atLeast(args.access) ? args.access : memberAccess,
+        member: ContactCard.fromBytes(member.contactCard),
+        power: memberPower.atLeast(args.power) ? args.power : memberPower,
       });
     }
     args.group.change((d) => {
       if (!d.documents.some((doc) => doc.id === args.id)) {
-        d.documents.push({ id: args.id, access: args.access.toString() });
+        d.documents.push({ id: args.id, power: args.power.toString() });
       }
     });
   }
@@ -132,7 +132,7 @@ export class GroupService {
   async members(group: DocHandle<Group>): Promise<GroupMember[]> {
     return Object.entries(group.doc().members).map(([idHex, member]) => ({
       id: new Identifier(hexToUint8Array(idHex)),
-      access: Access.fromString(member.access),
+      power: Power.fromString(member.power),
     }));
   }
 }

@@ -123,7 +123,7 @@ export function App({ service, workspaceId }: AppProps): React.JSX.Element {
         <Box flexDirection="row" justifyContent="space-between">
           <Text dimColor>tab ・ shift+tab ・ ↓ ・ ↑</Text>
           <Text dimColor>
-            /new {"[name]"} ・ /grant {"[access] [contact-card]"} ・ /open{" "}
+            /new {"[name]"} ・ /grant {"[power] [contact-card]"} ・ /open{" "}
             {"[group-url]"} ・ /close ・ /copy {"[contact-card/group-url]"}
           </Text>
         </Box>

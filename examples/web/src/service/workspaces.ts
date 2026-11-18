@@ -1,5 +1,5 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo"
-import { Access } from "zerno-core"
+import { Power } from "zerno-core"
 import type { ContactCard, Zerno } from "zerno-core"
 
 import type { ZernoChannel } from "./channels.js"
@@ -63,15 +63,15 @@ export class WorkspaceService {
     await this.zerno.groups.grant({
       group,
       contactCard,
-      access: Access.admin(),
+      power: Power.admin(),
     })
 
-    // Grant the group access to the phonebook, so every current and future
+    // Grant the group power over the phonebook, so every current and future
     // member of the group can resolve contact cards (and add their own)
     await this.zerno.groups.addDocument({
       group,
       id: phonebook.url,
-      access: Access.edit(),
+      power: Power.edit(),
     })
 
     // Create the channel document
@@ -82,11 +82,11 @@ export class WorkspaceService {
       messages: {},
     })
 
-    // Grant the group access to the channel document
+    // Grant the group power over the channel document
     await this.zerno.groups.addDocument({
       group,
       id: channel.url,
-      access: Access.edit(),
+      power: Power.edit(),
     })
 
     // Flush capability grants immediately so peers get decryption keys ASAP.
@@ -118,7 +118,7 @@ export class WorkspaceService {
   async grantChannel(args: {
     channel: DocHandle<ZernoChannel>
     contactCard: ContactCard
-    access: Access
+    power: Power
   }) {
     const phonebookId = args.channel.doc().phonebookId
     await this.phonebooks.add({
@@ -126,13 +126,13 @@ export class WorkspaceService {
       contactCard: args.contactCard,
     })
 
-    // Membership in the group grants access to all of the channel's
+    // Membership in the group grants power over all of the channel's
     // documents, including the ones created later
     const group = await this.zerno.groups.find(args.channel.doc().groupUrl)
     await this.zerno.groups.grant({
       group,
       contactCard: args.contactCard,
-      access: args.access,
+      power: args.power,
     })
 
     // Flush capability grants immediately so peers get decryption keys ASAP.
