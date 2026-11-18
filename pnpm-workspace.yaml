@@ -15,13 +15,13 @@ patchedDependencies:
 
 catalog:
   "@automerge/automerge": 3.5.0
-  "@automerge/automerge-repo": 2.6.0-subduction.48
+  "@automerge/automerge-repo": 2.6.0-subduction.49
   "@automerge/automerge-repo-keyhive": 0.5.0-alpha.6
-  "@automerge/automerge-repo-storage-indexeddb": 2.6.0-subduction.48
-  "@automerge/automerge-repo-storage-nodefs": 2.6.0-subduction.48
+  "@automerge/automerge-repo-storage-indexeddb": 2.6.0-subduction.49
+  "@automerge/automerge-repo-storage-nodefs": 2.6.0-subduction.49
   "@automerge/automerge-subduction": 0.16.1
   "@automerge/keyhive-react": 0.1.0-alpha.3
-  "@automerge/react": 2.6.0-subduction.48
+  "@automerge/react": 2.6.0-subduction.49
   "@keyhive/keyhive": 0.1.0-alpha.8
 
 overrides:
