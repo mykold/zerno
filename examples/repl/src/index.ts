@@ -13,8 +13,9 @@ import {
   initializeAutomergeRepoKeyhive,
   uint8ArrayToHex,
 } from "@automerge/automerge-repo-keyhive";
-import type { SyncServerSelection } from "@automerge/automerge-repo-keyhive";
-import { decodeContactCard, Access, Zerno } from "zerno-core";
+import type { SyncServerIdentity } from "@automerge/automerge-repo-keyhive";
+import { ContactCard, Power, Zerno } from "zerno-core";
+import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
 
 import { colorize, colors } from "./colorize.js";
 
@@ -59,9 +60,16 @@ async function getDocument(
 
 const { syncServer, subductionWebsocketEndpoints } = await (async () => {
   const content = await readFile(SYNC_SERVER_FILE, "utf-8");
-  return JSON.parse(content) as {
-    syncServer: SyncServerSelection;
+  const { syncServer, subductionWebsocketEndpoints } = JSON.parse(content) as {
+    syncServer: { peerId: PeerId; contactCard: string };
     subductionWebsocketEndpoints: string[];
+  };
+  return {
+    syncServer: {
+      peerId: syncServer.peerId,
+      contactCard: hexToUint8Array(syncServer.contactCard),
+    } satisfies SyncServerIdentity,
+    subductionWebsocketEndpoints,
   };
 })();
 
@@ -176,14 +184,13 @@ interface ZernoDocument {
             break;
           }
           case "members": {
-            const members = await zerno.access.members(handle.url);
+            const members = await zerno.power.members(handle.url);
             members.forEach((member) => {
               console.log(
                 colorize({
                   id: member.id,
-                  access: member.access.toString(),
+                  power: member.access.toString(),
                   isSelf: member.isSelf,
-                  isPublic: member.isPublic,
                   isSyncServer: member.isSyncServer,
                 }),
               );
@@ -220,9 +227,9 @@ interface ZernoDocument {
             break;
           }
           case "grant": {
-            const access = Access.tryFromString(args[2]);
-            if (!access) {
-              console.log(colorize("ERROR: invalid access"));
+            const power = Power.tryFromString(args[2]);
+            if (!power) {
+              console.log(colorize("ERROR: invalid power"));
               console.log(
                 colorize("ERROR:  choose one: relay | read | edit | admin"),
               );
@@ -234,13 +241,15 @@ interface ZernoDocument {
               console.log(colorize("ERROR: contact card is not provided"));
               break;
             }
-            const decodedContactCard = decodeContactCard(contactCard);
+            const decodedContactCard = ContactCard.fromBytes(
+              hexToUint8Array(contactCard),
+            );
 
             try {
-              await zerno.access.grant({
+              await zerno.power.grant({
                 id: handle.url,
                 member: decodedContactCard,
-                access: access,
+                power: power,
               });
             } catch (err) {
               const message = (err as Error).message;
@@ -250,7 +259,7 @@ interface ZernoDocument {
 
             console.log(
               colorize(
-                `INFO: Access granted to user '${uint8ArrayToHex(
+                `INFO: Power granted to user '${uint8ArrayToHex(
                   decodedContactCard.id.toBytes(),
                 )}'`,
               ),
@@ -275,7 +284,7 @@ interface ZernoDocument {
         console.log(colorize("ERROR:  doc members"));
         console.log(
           colorize(
-            "ERROR:  doc grant <access: relay | read | edit | admin> <contact-card>",
+            "ERROR:  doc grant <power: relay | read | edit | admin> <contact-card>",
           ),
         );
         break;

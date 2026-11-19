@@ -3,7 +3,8 @@ import { Box } from "ink";
 import TextInput from "ink-text-input";
 import clipboard from "clipboardy";
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
-import { Access, decodeContactCard, encodeContactCard } from "zerno-core";
+import { ContactCard, Power } from "zerno-core";
+import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
 import { useDocHandle } from "zerno-react";
 
 import { useToast } from "../hooks/use-toast.js";
@@ -117,15 +118,15 @@ function createCommands({
   async function grantChannel(args: ArgumentParser): Promise<void> {
     if (!selectedChannel) throw new Error("Channel is not selected");
 
-    const access = args.next(Access.fromString);
-    const contactCard = args.next(decodeContactCard);
+    const power = args.next(Power.fromString);
+    const contactCard = args.next((hex) => ContactCard.fromBytes(hexToUint8Array(hex)));
 
     await service.workspaces.grantChannel({
       channel: selectedChannel,
       contactCard,
-      access,
+      power,
     });
-    sendToast("success", "Contact card added to phonebook and access granted");
+    sendToast("success", "Contact card added to phonebook and power granted");
   }
 
   async function sendMessage(args: ArgumentParser): Promise<void> {

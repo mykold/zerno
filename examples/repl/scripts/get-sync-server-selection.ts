@@ -2,7 +2,10 @@ import {
   initKeyhiveWasm,
   peerIdFromSigner,
 } from "@automerge/automerge-repo-keyhive";
-import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
+import {
+  hexToUint8Array,
+  uint8ArrayToHex,
+} from "@automerge/automerge-repo-keyhive/dist/utilities.js";
 import { Signer, Keyhive, CiphertextStore } from "@keyhive/keyhive/slim";
 
 const KEYHIVE_SEED = process.env.KEYHIVE_SEED;
@@ -26,6 +29,6 @@ const KEYHIVE_SEED = process.env.KEYHIVE_SEED;
 
   console.log({
     peerId: peerId,
-    contactCardJson: contactCard.toJson(),
+    contactCard: uint8ArrayToHex(contactCard.toBytes()),
   });
 })().catch(console.error);

@@ -1,7 +1,8 @@
 import { useState } from "react"
 import type { AutomergeUrl } from "@automerge/automerge-repo"
 import { toast } from "sonner"
-import { Access, decodeContactCard, useAccess, useDocHandle } from "zerno-react"
+import { ContactCard, Power, usePower, useDocHandle } from "zerno-react"
+import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js"
 
 import {
   Sheet,
@@ -26,7 +27,7 @@ import { useAppContext } from "@/app-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { ZernoChannel } from "@/service"
 
-const ACCESSES = [
+const POWERS = [
   { value: "relay", level: 0 },
   { value: "read", level: 1 },
   { value: "edit", level: 2 },
@@ -50,28 +51,28 @@ export function GrantChannelSheet({
   type TabType = "contact-card" | "address-book"
   const [tab, setTab] = useState<TabType>("contact-card")
 
-  const [access, setAccess] = useState<string | undefined>()
+  const [power, setPower] = useState<string | undefined>()
   const [contactCard, setContactCard] = useState("")
 
-  const myAccess = useAccess(url)
+  const myPower = usePower(url)
 
   const handleGrantChannel = async () => {
     switch (tab) {
       case "contact-card": {
         try {
-          if (!access) {
-            toast.error("Select an access level")
+          if (!power) {
+            toast.error("Select a power")
             break
           }
 
           await service.workspaces.grantChannel({
             channel,
-            contactCard: decodeContactCard(contactCard),
-            access: Access.fromString(access),
+            contactCard: ContactCard.fromBytes(hexToUint8Array(contactCard)),
+            power: Power.fromString(power),
           })
         } catch (e) {
           const message = (e as Error).message
-          toast.error("Could not grant access", { description: message })
+          toast.error("Could not grant power", { description: message })
           break
         }
 
@@ -91,9 +92,9 @@ export function GrantChannelSheet({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent showCloseButton={false}>
         <SheetHeader>
-          <SheetTitle>Grant channel access</SheetTitle>
+          <SheetTitle>Grant channel power</SheetTitle>
           <SheetDescription>
-            Select a user and choose the level of access they should have to
+            Select a user and choose the power they should have over
             this document.
           </SheetDescription>
         </SheetHeader>
@@ -151,23 +152,23 @@ export function GrantChannelSheet({
 
           <div className="grid gap-3">
             <div>
-              <Label htmlFor="channel-access">Access</Label>
+              <Label htmlFor="channel-power">Power</Label>
 
               <p className="text-sm text-muted-foreground">
                 Higher levels include all permissions from lower levels.
               </p>
             </div>
 
-            <Select value={access} onValueChange={setAccess}>
+            <Select value={power} onValueChange={setPower}>
               <SelectTrigger className="w-full max-w-48">
-                <SelectValue placeholder="Select access" />
+                <SelectValue placeholder="Select power" />
               </SelectTrigger>
 
               <SelectContent position="popper">
-                {ACCESSES.filter(
-                  (access) => myAccess && myAccess.level >= access.level
-                ).map((access) => (
-                  <SelectItem value={access.value}>{access.value}</SelectItem>
+                {POWERS.filter(
+                  (power) => myPower && myPower.level >= power.level
+                ).map((power) => (
+                  <SelectItem value={power.value}>{power.value}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

@@ -2,7 +2,7 @@ import type { Repo } from "@automerge/automerge-repo";
 import type { AutomergeRepoKeyhive } from "@automerge/automerge-repo-keyhive";
 
 import { DocumentService } from "./document.js";
-import { AccessService } from "./access.js";
+import { PowerService } from "./power.js";
 import { IdentityService } from "./identity.js";
 import { GroupService } from "./groups.js";
 
@@ -16,7 +16,7 @@ export class Zerno {
   public readonly hive: AutomergeRepoKeyhive;
 
   public readonly documents: DocumentService;
-  public readonly access: AccessService;
+  public readonly power: PowerService;
   public readonly identity: IdentityService;
   public readonly groups: GroupService;
 
@@ -24,9 +24,9 @@ export class Zerno {
     this.repo = repo;
     this.hive = hive;
     this.documents = new DocumentService(repo, hive);
-    this.access = new AccessService(hive);
+    this.power = new PowerService(hive);
     this.identity = new IdentityService(hive);
-    this.groups = new GroupService(this.documents, this.access);
+    this.groups = new GroupService(this.documents, this.power);
   }
 
   // TODO: Why is this here? Maybe should be moved into `.grant()`? I don't really know.

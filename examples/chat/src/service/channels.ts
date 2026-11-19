@@ -1,5 +1,5 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
-import { Access } from "zerno-core";
+import { Power } from "zerno-core";
 import type { Zerno } from "zerno-core";
 
 import type { ZernoMessageList } from "./messages.js";
@@ -58,27 +58,27 @@ export class ChannelService {
       }),
     );
 
-    const members = await this.zerno.access.members(args.channel.url);
+    const members = await this.zerno.power.members(args.channel.url);
     for (const member of members) {
       if (member.isSyncServer) continue;
       if (member.id === author) continue;
 
-      // Skip if the member already has access
-      const hasAccess = await this.zerno.access.hasAtLeast({
+      // Skip if the member already has power
+      const hasPower = await this.zerno.power.hasAtLeast({
         id: messageList.url,
         member: member.id,
-        access: Access.read(),
+        power: Power.read(),
       });
-      if (hasAccess) continue;
+      if (hasPower) continue;
 
       const contactCard = await this.phonebooks.resolve({
         phonebookId: args.channel.doc().phonebookId,
         identifier: member.id,
       });
-      await this.zerno.access.grant({
+      await this.zerno.power.grant({
         id: messageList.url,
         member: contactCard,
-        access: Access.read(),
+        power: Power.read(),
       });
     }
 

@@ -4,7 +4,7 @@
 
 This example is built on the Automerge Repo stack. [`@automerge/automerge-repo`](https://github.com/automerge/automerge-repo/tree/main/packages/automerge-repo) manages local-first documents and peer synchronization. [`@automerge/automerge-repo-storage-nodefs`](https://github.com/automerge/automerge-repo/tree/main/packages/automerge-repo-storage-nodefs) stores that data on the local filesystem.
 
-[`@automerge/automerge-repo-keyhive`](https://www.npmjs.com/package/@automerge/automerge-repo-keyhive) adds identities and access control on top of Automerge Repo. It uses [`@keyhive/keyhive`](https://github.com/inkandswitch/keyhive/tree/main/keyhive_wasm) for the underlying cryptography: contact cards, membership, and grants that decide who can relay, read, edit, or administer a document.
+[`@automerge/automerge-repo-keyhive`](https://www.npmjs.com/package/@automerge/automerge-repo-keyhive) adds identities and cryptographic capabilities on top of Automerge Repo. It uses [`@keyhive/keyhive`](https://github.com/inkandswitch/keyhive/tree/main/keyhive_wasm) for the underlying cryptography: contact cards, membership, and grants that decide who can relay, read, edit, or administer a document.
 
 [`@automerge/automerge-subduction`](https://github.com/inkandswitch/subduction/tree/main/automerge_subduction_wasm) is the sync relay. Peers that are not directly connected exchange encrypted updates through a Subduction server. [`zerno-core`](../../packages/core) sits above all of this and exposes a simpler API for identity, documents, and grants — what the REPL actually calls.
 
@@ -36,13 +36,13 @@ By default, a new document is created on the first application start. You can vi
 Peer 1> doc
 ```
 
-To grant another user access to your document, you first need their identity. Retrieve Peer 2's contact card:
+To grant another user power over your document, you first need their identity. Retrieve Peer 2's contact card:
 
 ```text
 Peer 2> me contact-card
 ```
 
-Grant access from Peer 1:
+Grant power from Peer 1:
 
 ```text
 Peer 1> doc grant edit eyJSb3RhdGUiOnsicGF5bG9hZCI6...
@@ -172,7 +172,7 @@ doc open automerge:...
 
 ### `doc members`
 
-List all known document members and their access levels.
+List all known document members and their powers.
 
 ```text
 doc members
@@ -181,13 +181,13 @@ doc members
 Example output:
 
 ```json
-{"id":"...","access":"admin","isSelf":true,"isPublic":false,"isSyncServer":false}
-{"id":"...","access":"edit","isSelf":false,"isPublic":false,"isSyncServer":false}
+{"id":"...","power":"admin","isSelf":true,"isSyncServer":false}
+{"id":"...","power":"edit","isSelf":false,"isSyncServer":false}
 ```
 
 ### `doc grant <relay|read|edit|admin> <contact-card>`
 
-Grant another identity access to the document.
+Grant another identity power over the document.
 
 The contact card must be the Base64 value produced by `me contact-card`.
 
@@ -195,11 +195,11 @@ The contact card must be the Base64 value produced by `me contact-card`.
 doc grant read eyJSb3RhdGUiOnsicGF5bG9hZCI6...
 ```
 
-Supported access levels:
+Supported powers:
 
-| Level   | Description                                                                        |
+| Power   | Description                                                                        |
 | ------- | ---------------------------------------------------------------------------------- |
 | `relay` | Can relay encrypted synchronization traffic but cannot read the document contents. |
-| `read`  | Read-only access.                                                                  |
+| `read`  | Read-only.                                                                         |
 | `edit`  | Read and modify the document.                                                      |
-| `admin` | Full administrative access, including granting permissions to others.              |
+| `admin` | Full administrative power, including granting powers to others.                    |

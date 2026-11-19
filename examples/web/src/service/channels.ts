@@ -1,6 +1,6 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo"
 import { ImmutableString } from "@automerge/automerge-repo"
-import { Access } from "zerno-core"
+import { Power } from "zerno-core"
 import type { Zerno } from "zerno-core"
 
 import type { ZernoMessageList } from "./messages.js"
@@ -44,13 +44,13 @@ export class ChannelService {
         messages: [],
       })
 
-      // Members of the group get access to the new message list, including
+      // Members of the group get power over the new message list, including
       // the ones that join later
       const group = await this.zerno.groups.find(args.channel.doc().groupUrl)
       await this.zerno.groups.addDocument({
         group,
         id: messageList.url,
-        access: Access.read(),
+        power: Power.read(),
       })
     } else {
       messageList =

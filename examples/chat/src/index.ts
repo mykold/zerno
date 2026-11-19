@@ -7,6 +7,7 @@ import { NodeFSStorageAdapter } from "@automerge/automerge-repo-storage-nodefs";
 import { initializeAutomergeRepoKeyhive } from "@automerge/automerge-repo-keyhive";
 import type { SyncServerIdentity } from "@automerge/automerge-repo-keyhive";
 import { Zerno } from "zerno-core";
+import { hexToUint8Array } from "@automerge/automerge-repo-keyhive/dist/utilities.js";
 
 import {
   Service,
@@ -31,9 +32,16 @@ const ZERNO_PEER = await (async (): Promise<PeerId> => {
 
 const { syncServer, subductionWebsocketEndpoints } = await (async () => {
   const content = await readFile(CONFIG.SYNC_SERVER_FILE, "utf-8");
-  return JSON.parse(content) as {
-    syncServer: SyncServerIdentity;
+  const { syncServer, subductionWebsocketEndpoints } = JSON.parse(content) as {
+    syncServer: { peerId: PeerId; contactCard: string };
     subductionWebsocketEndpoints: string[];
+  };
+  return {
+    syncServer: {
+      peerId: syncServer.peerId,
+      contactCard: hexToUint8Array(syncServer.contactCard),
+    } satisfies SyncServerIdentity,
+    subductionWebsocketEndpoints,
   };
 })();
 

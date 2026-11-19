@@ -11,4 +11,4 @@ export { useDocHandles } from "./use-doc-handles.js";
 export type { DocHandleMap, UseDocHandlesParams } from "./use-doc-handles.js";
 export { useDocSelector } from "./use-doc-selector.js";
 export { useMembers } from "./use-members.js";
-export { useAccess } from "./use-access.js";
+export { usePower } from "./use-power.js";

@@ -11,8 +11,10 @@ export default defineConfig({
     // condition, which requires sync wasm ESM imports that Vite's dep
     // pre-bundler cannot provide. The "webpack" condition picks the
     // base64-inline entrypoint instead, which automerge ships for exactly
-    // this case. See HACKING.md in the automerge repo.
-    conditions: ["webpack"],
+    // this case. See HACKING.md in the automerge repo. "browser" stays for
+    // keyhive and subduction, which have no "webpack" entry and would
+    // otherwise inline their wasm as base64.
+    conditions: ["webpack", "browser"],
     alias: [
       {
         find: "@",

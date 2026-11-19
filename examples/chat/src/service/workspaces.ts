@@ -1,5 +1,5 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
-import { Access } from "zerno-core";
+import { Power } from "zerno-core";
 import type { ContactCard, Zerno } from "zerno-core";
 
 import type { ZernoChannel } from "./channels.js";
@@ -81,7 +81,7 @@ export class WorkspaceService {
   async grantChannel(args: {
     channel: DocHandle<ZernoChannel>;
     contactCard: ContactCard;
-    access: Access;
+    power: Power;
   }) {
     const phonebookId = args.channel.doc().phonebookId;
     await this.phonebooks.add({
@@ -89,26 +89,26 @@ export class WorkspaceService {
       contactCard: args.contactCard,
     });
 
-    // Grant access to the group
-    await this.zerno.access.grant({
+    // Grant power over the group
+    await this.zerno.power.grant({
       id: args.channel.url,
       member: args.contactCard,
-      access: args.access,
+      power: args.power,
     });
 
-    // Grant access to the phonebook of the group
-    await this.zerno.access.grant({
+    // Grant power over the phonebook of the group
+    await this.zerno.power.grant({
       id: phonebookId,
       member: args.contactCard,
-      access: args.access,
+      power: args.power,
     });
 
-    // Grant access to all message lists of the group
+    // Grant power over all message lists of the group
     for (const messageList of Object.values(args.channel.doc().messages)) {
-      await this.zerno.access.grant({
+      await this.zerno.power.grant({
         id: messageList,
         member: args.contactCard,
-        access: args.access,
+        power: args.power,
       });
     }
   }

@@ -2,7 +2,7 @@ import React, { useId, useState } from "react"
 import { SendHorizontalIcon } from "lucide-react"
 import type { AutomergeUrl } from "@automerge/automerge-repo/slim"
 import { toast } from "sonner"
-import { Access, useAccess, useDocHandle } from "zerno-react"
+import { Power, usePower, useDocHandle } from "zerno-react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -33,7 +33,7 @@ export interface ChannelInputProps {
 export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
   const { service } = useAppContext()
   const [content, setContent] = useState("")
-  const myAccess = useAccess(selectedChannelUrl)
+  const myPower = usePower(selectedChannelUrl)
   const { startEditing, composerRef, lastOwnMessageIdRef } = useMessageEditing()
   const isTouch = useIsTouch()
 
@@ -42,7 +42,7 @@ export function ChannelInput({ selectedChannelUrl }: ChannelInputProps) {
     suspense: true,
   })
 
-  if (!myAccess?.atLeast(Access.edit())) return null
+  if (!myPower?.atLeast(Power.edit())) return null
 
   const handleSendMessage = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()

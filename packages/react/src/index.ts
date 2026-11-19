@@ -10,7 +10,7 @@ export {
   useDocHandles,
   useDocSelector,
   useMembers,
-  useAccess,
+  usePower,
 } from "./hooks/index.js";
 export type {
   UseDocumentChangeFn,

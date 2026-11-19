@@ -89,7 +89,7 @@ export function Channel({
               className="text-blue-600 dark:text-blue-400"
             >
               <ShareIcon className="text-blue-600 dark:text-blue-400" />
-              Grant access
+              Grant power
             </DropdownMenuItem>
             <Separator className="mt-2 mb-2" />
             <DropdownMenuItem onClick={() => setIsChannelEditing(true)}>
@@ -128,7 +128,7 @@ export function Channel({
             </DialogTitle>
             <DialogDescription>
               The channel leaves your sidebar, but you stay a member. Open it
-              again by its URL at any time, as long as you still have access.
+              again by its URL at any time, as long as you still have power over it.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

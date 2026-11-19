@@ -1,6 +1,6 @@
 # `zerno`
 
-An experimental adapter over [`@automerge/automerge-repo`](https://github.com/automerge/automerge-repo/tree/main/packages/automerge-repo) and [`@automerge/automerge-repo-keyhive`](https://www.npmjs.com/package/@automerge/automerge-repo-keyhive) for building local-first applications with identities, documents, and cryptographic access control.
+An experimental adapter over [`@automerge/automerge-repo`](https://github.com/automerge/automerge-repo/tree/main/packages/automerge-repo) and [`@automerge/automerge-repo-keyhive`](https://www.npmjs.com/package/@automerge/automerge-repo-keyhive) for building local-first applications with identities, documents, and cryptographic capabilities.
 
 ## Installation
 
@@ -10,9 +10,9 @@ pnpm install
 
 ## Usage
 
-- [`zerno-core`](./packages/core) is the core library that provides the main Zerno functionality. It builds on top of Automerge Repo and Keyhive, adding identity management, document handling, and access control with cryptographic permissions.
+- [`zerno-core`](./packages/core) is the core library that provides the main Zerno functionality. It builds on top of Automerge Repo and Keyhive, adding identity management, document handling, and powers backed by cryptographic capabilities.
 
-- [`zerno-react`](./packages/react) provides React bindings for `zerno-core`. It provides React components and hooks for accessing the Zerno instance, observing documents, handling synchronization progress, and building reactive local-first applications.
+- [`zerno-react`](./packages/react) provides React bindings for `zerno-core`. It provides React components and hooks for using the Zerno instance, observing documents, handling synchronization progress, and building reactive local-first applications.
 
 ## Examples
 
